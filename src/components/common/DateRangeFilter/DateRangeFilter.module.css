@@ -1,26 +1,23 @@
 .filter {
   display: flex;
   align-items: center;
-  gap: var(--spacing-3);
-  padding: var(--spacing-4);
-  background-color: var(--color-surface);
-  border-bottom: 1px solid var(--color-border-light);
+  gap: 6px;
+  padding: 0;
+  background-color: transparent;
+  border: none;
 }
 
 .label {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
-  white-space: nowrap;
+  display: none;
 }
 
 .dateDisplay {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
-  padding: var(--spacing-2) var(--spacing-4);
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius-md);
+  gap: 4px;
+  padding: 5px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
   cursor: pointer;
   transition: all var(--transition-fast);
   background-color: var(--color-surface);
@@ -28,11 +25,11 @@
 
 .dateDisplay:hover {
   border-color: var(--color-primary);
-  background-color: rgba(26, 77, 122, 0.05);
+  background-color: var(--color-surface-hover);
 }
 
 .dateText {
-  font-size: var(--font-size-sm);
+  font-size: 12px;
   color: var(--color-text-primary);
 }
 
@@ -45,11 +42,12 @@
 }
 
 .clearButton {
-  padding: var(--spacing-2) var(--spacing-3);
-  font-size: var(--font-size-sm);
+  padding: 4px 8px;
+  font-size: 12px;
   color: var(--color-text-secondary);
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   transition: all var(--transition-fast);
+  background: #f3f4f6;
 }
 
 .clearButton:hover {

@@ -9,6 +9,9 @@ export interface Post {
   mentions: string[];
   replies: Reply[];
   viewCount: number;
+  allowReplies?: boolean;
+  aiSummary?: string;
+  aiHistory?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -64,6 +67,10 @@ export interface CreatePostData {
   content: PostContent;
   attachments?: Attachment[];
   mentions?: string[];
+  allowReplies?: boolean;
+  includeAI?: boolean;
+  aiSummary?: string;
+  aiHistory?: string;
 }
 
 export interface CreateReplyData {

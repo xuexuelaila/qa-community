@@ -1,8 +1,8 @@
 :root {
   /* 色彩系统 - 生财有术主题 */
-  --color-primary: #1abc9c;        /* 生财青绿色 */
-  --color-primary-light: #48c9b0;
-  --color-primary-dark: #16a085;
+  --color-primary: #1fb6a6;        /* 官方风格青绿 */
+  --color-primary-light: #45c7bb;
+  --color-primary-dark: #169c90;
 
   --color-secondary: #3498db;      /* 辅助蓝色 */
   --color-secondary-light: #5dade2;
@@ -12,20 +12,20 @@
   --color-accent-light: #f5b041;
   --color-accent-dark: #d68910;
 
-  --color-background: #f8f9fa;     /* 浅灰背景 */
+  --color-background: #f5f6f8;     /* 浅灰背景 */
   --color-surface: #ffffff;
-  --color-surface-hover: #f1f3f5;
+  --color-surface-hover: #f2f4f6;
 
-  --color-text-primary: #2c3e50;
-  --color-text-secondary: #7f8c8d;
-  --color-text-tertiary: #95a5a6;
+  --color-text-primary: #1f2937;
+  --color-text-secondary: #6b7280;
+  --color-text-tertiary: #9ca3af;
 
   --color-success: #2ecc71;
   --color-warning: #e74c3c;
   --color-info: #3498db;
 
-  --color-border: #dee2e6;
-  --color-border-light: #e9ecef;
+  --color-border: #e5e7eb;
+  --color-border-light: #edf0f2;
 
   /* 字体系统 */
   --font-family-base: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Helvetica Neue", Arial, sans-serif;
@@ -69,10 +69,10 @@
   --radius-full: 9999px;
 
   /* 阴影 */
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 6px 16px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 12px 24px rgba(15, 23, 42, 0.08);
+  --shadow-xl: 0 20px 32px rgba(15, 23, 42, 0.12);
 
   /* 过渡 */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);

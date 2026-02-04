@@ -6,6 +6,7 @@ import qaRoutes from './routes/qa';
 import postsRoutes from './routes/posts';
 import usersRoutes from './routes/users';
 import mockRoutes from './routes/mock';
+import uploadRoutes, { uploadDir } from './routes/upload';
 
 dotenv.config();
 
@@ -15,6 +16,8 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(uploadDir));
+app.use('/api/upload', uploadRoutes);
 
 mongoose
   .connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/qa-community')

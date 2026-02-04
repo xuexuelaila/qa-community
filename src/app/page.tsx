@@ -14,6 +14,7 @@ import DateRangeFilter from '@/components/common/DateRangeFilter';
 import Button from '@/components/common/Button';
 import { QAKnowledge } from '@/types/qa';
 import { Post, CreatePostData } from '@/types/post';
+import styles from './page.module.css';
 
 // Mock数据 - 航海日志
 const mockQAs: QAKnowledge[] = [
@@ -161,13 +162,13 @@ const mockPosts: Post[] = [
     },
     title: 'Next.js部署到Vercel后环境变量不生效',
     content: {
-      stage: '部署阶段',
+      stage: 'tech',
       problem: '我在本地开发时环境变量都正常，但是部署到Vercel后发现环境变量读取不到，导致API调用失败。',
       attempts: '已经在Vercel后台配置了环境变量，也重新部署了多次，但问题依然存在。',
     },
     attachments: [],
     status: 'pending',
-    mentions: [],
+    mentions: ['教练小夏'],
     replies: [
       {
         _id: 'r1',
@@ -175,7 +176,14 @@ const mockPosts: Post[] = [
         content: '你需要在环境变量前加上 NEXT_PUBLIC_ 前缀才能在客户端访问',
         isAdopted: false,
         likes: 5,
-        subReplies: [],
+        subReplies: [
+          {
+            _id: 'sr1',
+            authorId: '1',
+            content: '感谢提醒，我去试试。',
+            createdAt: new Date(),
+          },
+        ],
         createdAt: new Date(),
       },
     ],
@@ -200,13 +208,13 @@ const mockPosts: Post[] = [
     },
     title: 'MongoDB聚合查询性能优化求助',
     content: {
-      stage: '开发阶段',
+      stage: 'tech',
       problem: '需要对百万级数据进行聚合查询，但是查询速度很慢，经常超时。',
       attempts: '已经添加了索引，但效果不明显。尝试过使用 $match 提前过滤，但还是很慢。',
     },
     attachments: [],
     status: 'resolved',
-    mentions: [],
+    mentions: ['教练阿北'],
     replies: [
       {
         _id: 'r2',
@@ -236,6 +244,126 @@ const mockPosts: Post[] = [
   },
 ];
 
+const coachInfo = {
+  name: '教练小夏',
+  intro: '擅长增长策略与AIGC落地，专注冷启动与内容转化打法。',
+};
+
+const mockPostsV2: Post[] = mockPosts.map((post, index) => ({
+  ...post,
+  _id: `v2-${post._id}`,
+  title: `${post.title}（第13期）`,
+  status: index % 2 === 0 ? 'pending' : 'resolved',
+  createdAt: new Date(Date.now() - (index + 1) * 3 * 60 * 60 * 1000),
+  updatedAt: new Date(),
+}));
+
+const voyageOptions = [
+  {
+    id: 'v1',
+    name: 'AI 航海',
+    issue: '第12期',
+    range: '2026.01.10 - 2026.02.10',
+  },
+  {
+    id: 'v2',
+    name: '增长航海',
+    issue: '第13期',
+    range: '2026.02.12 - 2026.03.12',
+  },
+];
+
+const voyageData = {
+  v1: {
+    posts: mockPosts,
+    questionLeaders: [
+      { id: 'q1', name: 'V先生', questions: 5, resolved: 4, likes: 376 },
+      { id: 'q2', name: '比高', questions: 1, resolved: 1, likes: 249 },
+      { id: 'q3', name: '西昂', questions: 1, resolved: 1, likes: 161 },
+      { id: 'q4', name: 'lydia', questions: 1, resolved: 1, likes: 151 },
+      { id: 'q5', name: '小马宋', questions: 2, resolved: 1, likes: 138 },
+    ],
+    coachLeaders: [
+      { id: 'c1', name: '教练小夏', answers: 32, adopted: 18, likes: 412 },
+      { id: 'c2', name: '教练阿北', answers: 28, adopted: 15, likes: 366 },
+      { id: 'c3', name: '教练Mia', answers: 23, adopted: 12, likes: 315 },
+      { id: 'c4', name: '教练凯文', answers: 19, adopted: 9, likes: 288 },
+      { id: 'c5', name: '教练Kira', answers: 16, adopted: 7, likes: 241 },
+    ],
+    user: {
+      name: '当前用户',
+      role: '船员',
+      stats: { questions: 3, answers: 6, adopted: 2 },
+      unresolved: 1,
+    },
+  },
+  v2: {
+    posts: mockPostsV2,
+    questionLeaders: [
+      { id: 'q1', name: '阿梨', questions: 4, resolved: 3, likes: 308 },
+      { id: 'q2', name: '曦澄', questions: 2, resolved: 2, likes: 244 },
+      { id: 'q3', name: '沈舟', questions: 2, resolved: 1, likes: 198 },
+      { id: 'q4', name: '林晚', questions: 1, resolved: 1, likes: 155 },
+      { id: 'q5', name: '青音', questions: 1, resolved: 1, likes: 130 },
+    ],
+    coachLeaders: [
+      { id: 'c1', name: '教练Kira', answers: 26, adopted: 14, likes: 334 },
+      { id: 'c2', name: '教练阿北', answers: 24, adopted: 12, likes: 312 },
+      { id: 'c3', name: '教练小夏', answers: 20, adopted: 10, likes: 286 },
+      { id: 'c4', name: '教练Mia', answers: 18, adopted: 9, likes: 254 },
+      { id: 'c5', name: '教练凯文', answers: 15, adopted: 7, likes: 220 },
+    ],
+    user: {
+      name: '当前用户',
+      role: '船员',
+      stats: { questions: 1, answers: 2, adopted: 0 },
+      unresolved: 2,
+    },
+  },
+} as const;
+
+const leaderboardRanges = [
+  { key: '7d', label: '近7天' },
+  { key: '1m', label: '近1月' },
+  { key: '3m', label: '近3月' },
+  { key: '1y', label: '近1年' },
+];
+
+const communityCategories = [
+  { key: 'all', label: '全部' },
+  { key: 'tech', label: '技术问题' },
+  { key: 'tool', label: '工具使用' },
+  { key: 'process', label: '流程疑问' },
+  { key: 'other', label: '其他' },
+];
+
+const aiQuickChips = ['部署', '数据库', '提示词', '工具使用'];
+
+const suggestedCoaches = [
+  { id: 'c1', name: '教练小夏', specialty: '增长策略' },
+  { id: 'c2', name: '教练阿北', specialty: '技术架构' },
+  { id: 'c3', name: '教练Mia', specialty: '产品增长' },
+];
+
+type AiMessage = {
+  role: 'user' | 'ai';
+  content: string;
+};
+
+type QuestionFormPrefill = {
+  title?: string;
+  content?: {
+    stage?: string;
+    problem?: string;
+    attempts?: string;
+  };
+  mentions?: string[];
+  includeAI?: boolean;
+  allowReplies?: boolean;
+  aiSummary?: string;
+  aiHistory?: string;
+};
+
 export default function HomePage() {
   // 主Tab状态
   const [activeMainTab, setActiveMainTab] = useState<'log' | 'community'>('log');
@@ -254,15 +382,47 @@ export default function HomePage() {
   // 求助站状态
   const [communityTab, setCommunityTab] = useState<'all' | 'pending' | 'resolved'>('all');
   const [showForm, setShowForm] = useState(false);
+  const [activeVoyageId, setActiveVoyageId] = useState<'v1' | 'v2'>('v1');
   const [posts, setPosts] = useState<Post[]>(mockPosts);
+  const [questionLeaders, setQuestionLeaders] = useState(voyageData.v1.questionLeaders);
+  const [coachLeaders, setCoachLeaders] = useState(voyageData.v1.coachLeaders);
+  const [currentUser, setCurrentUser] = useState(voyageData.v1.user);
   const [communityStartDate, setCommunityStartDate] = useState<Date | null>(null);
   const [communityEndDate, setCommunityEndDate] = useState<Date | null>(null);
+  const [communitySearch, setCommunitySearch] = useState('');
+  const [communityCategory, setCommunityCategory] = useState('all');
+  const [communityCoach, setCommunityCoach] = useState('all');
+  const [communitySort, setCommunitySort] = useState<'latest' | 'hot'>('latest');
+  const [leaderboardTab, setLeaderboardTab] = useState<'question' | 'coach'>('question');
+  const [leaderboardRange, setLeaderboardRange] = useState('7d');
+  const [showSearchSuggest, setShowSearchSuggest] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiInput, setAiInput] = useState('');
+  const [aiMessages, setAiMessages] = useState<AiMessage[]>([]);
+  const [showAiGuide, setShowAiGuide] = useState(false);
+  const [skipAiGuide, setSkipAiGuide] = useState(false);
+  const [formPrefill, setFormPrefill] = useState<QuestionFormPrefill | null>(null);
 
   // 页面加载时自动加载群聊提取的知识库
   useEffect(() => {
     loadExtractedQAs();
     loadTagClickCounts();
+    const saved = localStorage.getItem('skipAiGuide');
+    if (saved === 'true') {
+      setSkipAiGuide(true);
+    }
   }, []);
+
+  useEffect(() => {
+    const data = voyageData[activeVoyageId];
+    setPosts(data.posts);
+    setQuestionLeaders(data.questionLeaders);
+    setCoachLeaders(data.coachLeaders);
+    setCurrentUser(data.user);
+    setCommunitySearch('');
+    setCommunityTab('all');
+    setCommunityCategory('all');
+  }, [activeVoyageId]);
 
   // 加载标签点击统计（从localStorage）
   const loadTagClickCounts = () => {
@@ -354,7 +514,33 @@ export default function HomePage() {
       }
     }
 
+    if (communityCategory !== 'all' && post.content.stage !== communityCategory) {
+      return false;
+    }
+
+    if (communityCoach !== 'all') {
+      const mentions = post.mentions || [];
+      if (!mentions.includes(communityCoach)) {
+        return false;
+      }
+    }
+
+    if (communitySearch) {
+      const keyword = communitySearch.toLowerCase();
+      const matchTitle = post.title.toLowerCase().includes(keyword);
+      const matchProblem = post.content.problem.toLowerCase().includes(keyword);
+      const matchAttempts = post.content.attempts.toLowerCase().includes(keyword);
+      if (!matchTitle && !matchProblem && !matchAttempts) {
+        return false;
+      }
+    }
+
     return true;
+  }).sort((a, b) => {
+    if (communitySort === 'hot') {
+      return (b.replies?.length || 0) - (a.replies?.length || 0);
+    }
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
   const postCounts = {
@@ -362,6 +548,10 @@ export default function HomePage() {
     pending: posts.filter((p) => p.status === 'pending').length,
     resolved: posts.filter((p) => p.status === 'resolved').length,
   };
+
+  const similarPosts = communitySearch
+    ? posts.filter((post) => post.title.toLowerCase().includes(communitySearch.toLowerCase()))
+    : posts;
 
   const handleTagClick = (tag: string) => {
     setSelectedTags((prev) =>
@@ -387,8 +577,38 @@ export default function HomePage() {
   };
 
   const handleSubmitPost = (data: CreatePostData) => {
-    console.log('Submit post:', data);
+    const now = new Date();
+    const newPost: Post = {
+      _id: `post-${Date.now()}`,
+      authorId: '1',
+      author: {
+        _id: '1',
+        nickname: '当前用户',
+        avatar: '',
+        role: 'member',
+        stats: {
+          questionsCount: 0,
+          answersCount: 0,
+          adoptedCount: 0,
+        },
+        createdAt: now,
+      },
+      title: data.title,
+      content: data.content,
+      attachments: data.attachments || [],
+      status: 'pending',
+      mentions: data.mentions || [],
+      allowReplies: data.allowReplies,
+      aiSummary: data.aiSummary,
+      aiHistory: data.aiHistory,
+      replies: [],
+      viewCount: 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+    setPosts((prev) => [newPost, ...prev]);
     setShowForm(false);
+    setFormPrefill(null);
   };
 
   const handleLogDateRangeChange = (start: Date | null, end: Date | null) => {
@@ -400,6 +620,152 @@ export default function HomePage() {
     setCommunityStartDate(start);
     setCommunityEndDate(end);
   };
+
+  const handleSearchFocus = () => {
+    setShowSearchSuggest(true);
+  };
+
+  const handleSearchBlur = () => {
+    setTimeout(() => setShowSearchSuggest(false), 120);
+  };
+
+  const scrollToPost = (postId: string) => {
+    const element = document.getElementById(`post-${postId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setShowSearchSuggest(false);
+  };
+
+  const openAiDrawer = () => {
+    setAiOpen(true);
+    if (communitySearch) {
+      setAiInput(communitySearch);
+    }
+  };
+
+  const closeAiDrawer = () => {
+    setAiOpen(false);
+  };
+
+  const openHumanForm = (prefill?: QuestionFormPrefill) => {
+    setFormPrefill(prefill || null);
+    setShowForm(true);
+  };
+
+  const handleAskHumanClick = () => {
+    if (!skipAiGuide) {
+      setShowAiGuide(true);
+      return;
+    }
+    openHumanForm();
+  };
+
+  const handleConfirmAskHuman = () => {
+    localStorage.setItem('skipAiGuide', 'true');
+    setSkipAiGuide(true);
+    setShowAiGuide(false);
+    openHumanForm();
+  };
+
+  const handleAiGuideAskAi = () => {
+    setShowAiGuide(false);
+    openAiDrawer();
+  };
+
+  const generateAiReply = (question: string) => {
+    return `给你一个快速排查思路：\n\n1. 先确认是否为环境变量前缀导致前端读取不到。\n2. 如果是服务端接口，请检查部署环境是否有刷新。\n\n示例：\n\`\`\`bash\nNEXT_PUBLIC_API_BASE=https://example.com\n\`\`\`\n\n> 如仍有问题，可以贴出报错日志，我来帮你定位。`;
+  };
+
+  const renderAiContent = (content: string) => {
+    const parts = content.split('```');
+    return parts.map((part, index) => {
+      if (index % 2 === 1) {
+        return (
+          <pre key={`code-${index}`} className={styles.aiCode}>
+            <code>{part.trim()}</code>
+          </pre>
+        );
+      }
+
+      return part.split('\n').map((line, lineIndex) => {
+        if (!line) {
+          return <div key={`space-${index}-${lineIndex}`} className={styles.aiSpacer} />;
+        }
+        if (line.startsWith('> ')) {
+          return (
+            <blockquote key={`quote-${index}-${lineIndex}`} className={styles.aiQuote}>
+              {line.replace('> ', '')}
+            </blockquote>
+          );
+        }
+        return (
+          <p key={`text-${index}-${lineIndex}`} className={styles.aiText}>
+            {line}
+          </p>
+        );
+      });
+    });
+  };
+
+  const handleSendAi = () => {
+    const text = aiInput.trim();
+    if (!text) return;
+    const nextMessages: AiMessage[] = [
+      ...aiMessages,
+      { role: 'user', content: text },
+      { role: 'ai', content: generateAiReply(text) },
+    ];
+    setAiMessages(nextMessages);
+    setAiInput('');
+  };
+
+  const handleAiChipClick = (chip: string) => {
+    setAiInput(chip);
+  };
+
+  const handleAiToHuman = () => {
+    const lastUser = [...aiMessages].reverse().find((msg) => msg.role === 'user');
+    const lastAi = [...aiMessages].reverse().find((msg) => msg.role === 'ai');
+    const question = lastUser?.content || communitySearch || '问题描述';
+    const summary = lastAi?.content?.split('\n').slice(0, 4).join('\n') || '';
+    const aiHistory = aiMessages
+      .map((msg) => `${msg.role === 'user' ? '用户' : 'AI'}：${msg.content}`)
+      .join('\n');
+
+    const prefill: QuestionFormPrefill = {
+      title: question.slice(0, 32),
+      content: {
+        stage: communityCategory !== 'all' ? communityCategory : '',
+        problem: `${question}\n\nAI回答摘要：\n${summary}`,
+        attempts: '',
+      },
+      includeAI: true,
+      allowReplies: true,
+      aiSummary: summary,
+      aiHistory,
+    };
+    setAiOpen(false);
+    openHumanForm(prefill);
+  };
+
+  const handleSelectCoachSuggest = (coachName: string) => {
+    setShowSearchSuggest(false);
+    openHumanForm({
+      mentions: [coachName],
+      allowReplies: true,
+    });
+  };
+
+  const handleScrollLeaderboard = (tab: 'question' | 'coach') => {
+    setLeaderboardTab(tab);
+    const element = document.getElementById('community-leaderboard');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const activeVoyage = voyageOptions.find((voyage) => voyage.id === activeVoyageId);
 
   return (
     <div>
@@ -446,42 +812,392 @@ export default function HomePage() {
         </div>
       ) : (
         // 求助站页面
-        <div>
-          <StatusTabs activeTab={communityTab} onTabChange={setCommunityTab} counts={postCounts} />
+        <div className={styles.communityRoot}>
+          <div className={styles.communityGrid}>
+            <div className={styles.communityMain}>
+              <div className={styles.communityHero}>
+              <div className={styles.communityIntroCard}>
+                <div className={styles.introIcon}>AI</div>
+                <div className={styles.introContent}>
+                  <div className={styles.introTitle}>求助站</div>
+                  <div className={styles.introMeta}>562位提问者，共10000+个问题</div>
+                  <div className={styles.introDesc}>
+                    <span className={styles.introDescIcon}>✨</span>
+                    欢迎来到求助站！这里汇聚航海伙伴与教练的实战解法，专注解决关键问题。
+                  </div>
+                </div>
+                <div className={styles.introActions}>
+                  <Button variant="primary" className={styles.aiPrimary} onClick={openAiDrawer}>
+                    🤖 先问 AI 航海助手
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className={styles.askSecondary}
+                    onClick={handleAskHumanClick}
+                  >
+                    ✍️ 向教练/伙伴求助
+                  </Button>
+                </div>
+              </div>
+              <div className={styles.topActionCard}>
+                <div className={styles.topRow}>
+                  <div className={styles.searchBox}>
+                    <span className={styles.searchIcon}>⌕</span>
+                      <input
+                        className={styles.searchInput}
+                        placeholder="搜索历史问题 / 回答 / 教练关键词，例如：Next.js 环境变量"
+                        value={communitySearch}
+                        onChange={(e) => setCommunitySearch(e.target.value)}
+                        onFocus={handleSearchFocus}
+                        onBlur={handleSearchBlur}
+                      />
+                      {showSearchSuggest && communitySearch && (
+                        <div className={styles.searchSuggest}>
+                          <div className={styles.suggestGroup}>
+                            <div className={styles.suggestTitle}>相似问题</div>
+                            {similarPosts.slice(0, 3).map((post) => (
+                              <button
+                                key={post._id}
+                                className={styles.suggestItem}
+                                onClick={() => {
+                                  setCommunitySearch(post.title);
+                                  scrollToPost(post._id);
+                                }}
+                              >
+                                <span>{post.title}</span>
+                                {post.status === 'resolved' && (
+                                  <span className={styles.suggestBadge}>已解决</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                          <div className={styles.suggestGroup}>
+                            <div className={styles.suggestTitle}>热门答案</div>
+                            {posts
+                              .flatMap((post) =>
+                                (post.replies || []).map((reply) => ({
+                                  id: reply._id,
+                                  postId: post._id,
+                                  content: reply.content,
+                                }))
+                              )
+                              .slice(0, 3)
+                              .map((reply) => (
+                                <button
+                                  key={reply.id}
+                                  className={styles.suggestItem}
+                                  onClick={() => scrollToPost(reply.postId)}
+                                >
+                                  {reply.content.slice(0, 36)}...
+                                </button>
+                              ))}
+                          </div>
+                          <div className={styles.suggestGroup}>
+                            <div className={styles.suggestTitle}>推荐教练</div>
+                            {suggestedCoaches.map((coach) => (
+                              <button
+                                key={coach.id}
+                                className={styles.suggestItem}
+                                onClick={() => handleSelectCoachSuggest(coach.name)}
+                              >
+                                <span>@{coach.name}</span>
+                                <span className={styles.suggestMeta}>{coach.specialty}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <button className={styles.quickFilter}>快捷筛选</button>
+                </div>
 
-          <DateRangeFilter
-            startDate={communityStartDate || undefined}
-            endDate={communityEndDate || undefined}
-            onRangeChange={handleCommunityDateRangeChange}
-          />
+                <div className={styles.topRow}>
+                  <div className={styles.hintText}>
+                    推荐先问 AI，80% 常见问题可立即解决；未解决再向教练或伙伴发起求助。
+                  </div>
+                </div>
 
-          <div style={{ padding: '16px' }}>
-            {!showForm && (
-              <Button variant="primary" fullWidth onClick={() => setShowForm(true)}>
-                + 发起求助
-              </Button>
-            )}
+                </div>
+              </div>
+
+              <div className={styles.categoryRow}>
+                {communityCategories.map((category) => (
+                  <button
+                    key={category.key}
+                    className={`${styles.categoryPill} ${
+                      communityCategory === category.key ? styles.categoryPillActive : ''
+                    }`}
+                    onClick={() => setCommunityCategory(category.key)}
+                  >
+                    {category.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className={styles.filterRow}>
+                <StatusTabs activeTab={communityTab} onTabChange={setCommunityTab} counts={postCounts} />
+                <div className={styles.filterControls}>
+                  <select
+                    className={styles.filterSelect}
+                    value={communityCoach}
+                    onChange={(e) => setCommunityCoach(e.target.value)}
+                  >
+                    <option value="all">全部教练</option>
+                    <option value="教练小夏">教练小夏</option>
+                    <option value="教练阿北">教练阿北</option>
+                    <option value="教练Mia">教练Mia</option>
+                  </select>
+                  <select
+                    className={styles.filterSelect}
+                    value={communitySort}
+                    onChange={(e) => setCommunitySort(e.target.value as 'latest' | 'hot')}
+                  >
+                    <option value="latest">最新</option>
+                    <option value="hot">最热</option>
+                  </select>
+                  <DateRangeFilter
+                    startDate={communityStartDate || undefined}
+                    endDate={communityEndDate || undefined}
+                    onRangeChange={handleCommunityDateRangeChange}
+                  />
+                </div>
+              </div>
+
+              {filteredPosts.length > 0 ? (
+                filteredPosts.map((post) => (
+                  <div key={post._id} id={`post-${post._id}`}>
+                    <PostCard post={post} onClick={() => console.log('View post:', post._id)} />
+                  </div>
+                ))
+              ) : (
+                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-tertiary)' }}>
+                  暂无符合条件的帖子
+                </div>
+              )}
+            </div>
+
+            <aside className={styles.communitySidebar}>
+              <div className={`${styles.sidebarCard} ${styles.userPanel}`}>
+                <div className={styles.userCardHeader}>
+                  <div className={styles.userAvatarLarge}>{currentUser.name.slice(0, 1)}</div>
+                  <div>
+                    <div className={styles.userName}>{currentUser.name}</div>
+                    <span className={styles.userRoleBadge}>{currentUser.role}</span>
+                  </div>
+                </div>
+                <button
+                  className={styles.userAiFloat}
+                  onClick={openAiDrawer}
+                  aria-label="打开 AI 航海助手"
+                >
+                  <span className={styles.userAiHalo} />
+                  <img src="/ai-robot.svg" alt="AI 航海助手" />
+                </button>
+                <div className={styles.voyageInfo}>
+                  <div className={styles.voyageTitle}>{activeVoyage?.name}</div>
+                  <div className={styles.voyageMeta}>
+                    {activeVoyage?.issue} · {activeVoyage?.range}
+                  </div>
+                </div>
+                <div className={styles.voyageSelectRow}>
+                  <label>切换航海</label>
+                  <select
+                    className={styles.voyageSelect}
+                    value={activeVoyageId}
+                    onChange={(e) => setActiveVoyageId(e.target.value as 'v1' | 'v2')}
+                  >
+                    {voyageOptions.map((voyage) => (
+                      <option key={voyage.id} value={voyage.id}>
+                        {voyage.name} {voyage.issue}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className={styles.userStats}>
+                  <div>
+                    <span>提问</span>
+                    <strong>{currentUser.stats.questions}</strong>
+                  </div>
+                  <div>
+                    <span>回答</span>
+                    <strong>{currentUser.stats.answers}</strong>
+                  </div>
+                  <div>
+                    <span>被采纳</span>
+                    <strong>{currentUser.stats.adopted}</strong>
+                  </div>
+                </div>
+                <div className={styles.userQuickLinks}>
+                  <button>我的提问</button>
+                  <button>我的回答</button>
+                  <button>我的收藏</button>
+                </div>
+                <div className={styles.unresolvedAlert}>
+                  我还有 <strong>{currentUser.unresolved}</strong> 个问题未解决
+                </div>
+              </div>
+              <div className={styles.sidebarCard}>
+                <div className={styles.sidebarTitle}>本期航海教练</div>
+                <div className={styles.coachCard}>
+                  <div className={styles.coachRow}>
+                    <div className={styles.coachAvatar}>{coachInfo.name.slice(0, 1)}</div>
+                    <div className={styles.coachName}>{coachInfo.name}</div>
+                  </div>
+                  <div className={styles.coachIntro}>{coachInfo.intro}</div>
+                </div>
+              </div>
+
+              <div className={styles.sidebarCard} id="community-leaderboard">
+                <div className={styles.rankTabs}>
+                  <button
+                    className={`${styles.rankTab} ${
+                      leaderboardTab === 'question' ? styles.rankTabActive : ''
+                    }`}
+                    onClick={() => setLeaderboardTab('question')}
+                  >
+                    船员提问榜
+                  </button>
+                  <button
+                    className={`${styles.rankTab} ${
+                      leaderboardTab === 'coach' ? styles.rankTabActive : ''
+                    }`}
+                    onClick={() => setLeaderboardTab('coach')}
+                  >
+                    教练回答榜
+                  </button>
+                </div>
+
+                <div className={styles.rankRanges}>
+                  {leaderboardRanges.map((range) => (
+                    <button
+                      key={range.key}
+                      className={`${styles.rankRange} ${
+                        leaderboardRange === range.key ? styles.rankRangeActive : ''
+                      }`}
+                      onClick={() => setLeaderboardRange(range.key)}
+                    >
+                      {range.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className={styles.rankList}>
+                  {(leaderboardTab === 'question' ? questionLeaders : coachLeaders).map(
+                    (leader, index) => (
+                      <div key={leader.id} className={styles.rankItem}>
+                        <span className={`${styles.rankIcon} ${styles[`rank${index + 1}`] || ''}`}>
+                          {index + 1}
+                        </span>
+                        <div className={styles.rankAvatar}>{leader.name.slice(0, 1)}</div>
+                        <div className={styles.rankInfo}>
+                          <div className={styles.rankName}>{leader.name}</div>
+                          <div className={styles.rankMeta}>
+                            {leaderboardTab === 'question'
+                              ? `提问 ${(leader as typeof questionLeaders[number]).questions} · 已解决 ${
+                                  (leader as typeof questionLeaders[number]).resolved
+                                } · 获赞 ${(leader as typeof questionLeaders[number]).likes}`
+                              : `回答 ${(leader as typeof coachLeaders[number]).answers} · 被采纳 ${
+                                  (leader as typeof coachLeaders[number]).adopted
+                                } · 获赞 ${(leader as typeof coachLeaders[number]).likes}`}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+
+                <button className={styles.rankMore}>查看更多</button>
+              </div>
+            </aside>
           </div>
 
           {showForm && (
-            <QuestionForm onSubmit={handleSubmitPost} onCancel={() => setShowForm(false)} />
+            <div className={styles.modalBackdrop} onClick={() => setShowForm(false)}>
+              <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+                <QuestionForm
+                  onSubmit={handleSubmitPost}
+                  onCancel={() => setShowForm(false)}
+                  initialData={formPrefill || undefined}
+                />
+              </div>
+            </div>
           )}
 
-          <div>
-            {filteredPosts.length > 0 ? (
-              filteredPosts.map((post) => (
-                <PostCard
-                  key={post._id}
-                  post={post}
-                  onClick={() => console.log('View post:', post._id)}
-                />
-              ))
-            ) : (
-              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-tertiary)' }}>
-                暂无符合条件的帖子
+          {showAiGuide && (
+            <div className={styles.modalBackdrop} onClick={() => setShowAiGuide(false)}>
+              <div className={styles.guideCard} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.guideTitle}>建议先问 AI 航海助手</div>
+                <div className={styles.guideText}>
+                  推荐先问 AI，80% 常见问题可即时解决；如未解决再向教练与伙伴求助。
+                </div>
+                <div className={styles.guideActions}>
+                  <Button variant="primary" onClick={handleAiGuideAskAi}>
+                    先问 AI
+                  </Button>
+                  <Button variant="outline" onClick={handleConfirmAskHuman}>
+                    继续求助
+                  </Button>
+                </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {aiOpen && (
+            <div className={styles.aiDrawerBackdrop} onClick={closeAiDrawer}>
+              <div className={styles.aiDrawer} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.aiHeader}>
+                  <div>
+                    <div className={styles.aiTitle}>AI 航海助手</div>
+                    <div className={styles.aiSubtitle}>先问 AI，快速定位问题方向</div>
+                  </div>
+                  <button className={styles.aiClose} onClick={closeAiDrawer}>
+                    ✕
+                  </button>
+                </div>
+
+                <div className={styles.aiChipRow}>
+                  {aiQuickChips.map((chip) => (
+                    <button key={chip} onClick={() => handleAiChipClick(chip)}>
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+
+                <div className={styles.aiBody}>
+                  {aiMessages.length === 0 && (
+                    <div className={styles.aiEmpty}>
+                      可以直接描述你的问题，AI 会先给出排查方向与参考方案。
+                    </div>
+                  )}
+                  {aiMessages.map((msg, index) => (
+                    <div
+                      key={`${msg.role}-${index}`}
+                      className={`${styles.aiMessage} ${styles[`ai${msg.role}`]}`}
+                    >
+                      <div className={styles.aiBubble}>{renderAiContent(msg.content)}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className={styles.aiInputRow}>
+                  <input
+                    value={aiInput}
+                    onChange={(e) => setAiInput(e.target.value)}
+                    placeholder="输入你的问题，AI 先帮你排查"
+                  />
+                  <button onClick={handleSendAi}>发送</button>
+                </div>
+
+                <div className={styles.aiFooter}>
+                  <div className={styles.aiFooterHint}>没解决？</div>
+                  <button className={styles.aiToHuman} onClick={handleAiToHuman}>
+                    一键转人工求助 →
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       )}
     </div>

@@ -31,14 +31,13 @@ export default function DateRangeFilter({
   return (
     <>
       <div className={styles.filter}>
-        <span className={styles.label}>筛选时间段：</span>
         <div className={styles.dateDisplay} onClick={() => setShowCalendar(true)}>
           <span className={styles.dateText}>
-            {startDate ? format(startDate, 'yyyy-MM-dd', { locale: zhCN }) : '开始日期'}
-          </span>
-          <span className={styles.separator}>-</span>
-          <span className={styles.dateText}>
-            {endDate ? format(endDate, 'yyyy-MM-dd', { locale: zhCN }) : '结束日期'}
+            {startDate && endDate
+              ? `${format(startDate, 'MM-dd', { locale: zhCN })} - ${format(endDate, 'MM-dd', {
+                  locale: zhCN,
+                })}`
+              : '日期'}
           </span>
         </div>
         {(startDate || endDate) && (

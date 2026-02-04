@@ -1,0 +1,58 @@
+.filter {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.dateDisplay {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-4);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  background-color: var(--color-surface);
+}
+
+.dateDisplay:hover {
+  border-color: var(--color-primary);
+  background-color: rgba(26, 77, 122, 0.05);
+}
+
+.dateText {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+.separator {
+  color: var(--color-text-tertiary);
+}
+
+.icon {
+  color: var(--color-text-tertiary);
+}
+
+.clearButton {
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.clearButton:hover {
+  background-color: var(--color-surface-hover);
+  color: var(--color-warning);
+}

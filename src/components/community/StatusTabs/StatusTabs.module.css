@@ -1,0 +1,49 @@
+.tabs {
+  display: flex;
+  gap: var(--spacing-2);
+  padding: var(--spacing-4);
+  background-color: var(--color-surface);
+  border-bottom: 2px solid var(--color-border-light);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+}
+
+.tab {
+  position: relative;
+  padding: var(--spacing-3) var(--spacing-6);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.tab:hover {
+  background-color: var(--color-surface-hover);
+  color: var(--color-primary);
+}
+
+.tab.active {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-warning);
+  color: white;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  border-radius: var(--radius-full);
+  animation: pulse 2s ease-in-out infinite;
+}

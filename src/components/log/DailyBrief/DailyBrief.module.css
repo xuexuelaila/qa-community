@@ -1,0 +1,117 @@
+.brief {
+  background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
+  color: white;
+  padding: var(--spacing-8);
+  margin: 0 auto;
+  margin-bottom: var(--spacing-6);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 8px 16px rgba(26, 188, 156, 0.2);
+  max-width: 1600px;
+  width: calc(100% - var(--spacing-6) * 2);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-5);
+}
+
+.title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.toggleButton {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  transition: all var(--transition-fast);
+}
+
+.toggleButton:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.stats {
+  display: flex;
+  gap: var(--spacing-8);
+  margin-bottom: var(--spacing-5);
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.statLabel {
+  font-size: var(--font-size-sm);
+  opacity: 0.9;
+}
+
+.statValue {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.summary {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+  opacity: 0.95;
+  margin-bottom: var(--spacing-5);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+.tag {
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: var(--spacing-1) var(--spacing-3);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+}
+
+.content {
+  overflow: hidden;
+  transition: max-height var(--transition-base) ease-out, opacity var(--transition-base) ease-out;
+}
+
+.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.expanded {
+  max-height: 500px;
+  opacity: 1;
+}
+
+@media (max-width: 1400px) {
+  .brief {
+    width: calc(100% - var(--spacing-6) * 2);
+  }
+}
+
+@media (max-width: 768px) {
+  .brief {
+    padding: var(--spacing-4);
+    width: calc(100% - var(--spacing-4) * 2);
+  }
+
+  .stats {
+    gap: var(--spacing-4);
+  }
+
+  .title {
+    font-size: var(--font-size-lg);
+  }
+}

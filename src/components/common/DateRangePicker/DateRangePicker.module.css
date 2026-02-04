@@ -1,0 +1,94 @@
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-4) var(--spacing-6);
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.icon {
+  font-size: var(--font-size-xl);
+}
+
+.dateRangeBox {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-6);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-width: 320px;
+}
+
+.dateRangeBox:hover {
+  border-color: var(--color-primary);
+  background-color: rgba(26, 77, 122, 0.02);
+}
+
+.dateText {
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  min-width: 100px;
+}
+
+.dateText.placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.separator {
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-bold);
+}
+
+.calendarIcon {
+  font-size: var(--font-size-lg);
+  color: var(--color-primary);
+}
+
+.actions {
+  display: flex;
+  gap: var(--spacing-2);
+  margin-left: auto;
+}
+
+.clearButton {
+  padding: var(--spacing-2) var(--spacing-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.clearButton:hover {
+  background-color: var(--color-surface-hover);
+  color: var(--color-warning);
+}
+
+.todayButton {
+  padding: var(--spacing-2) var(--spacing-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  transition: all var(--transition-fast);
+}
+
+.todayButton:hover {
+  background-color: var(--color-primary);
+  color: white;
+}

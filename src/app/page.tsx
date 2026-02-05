@@ -8,7 +8,6 @@ import QAGrid from '@/components/log/QAGrid';
 import QACard from '@/components/log/QACard';
 import QADetailModal from '@/components/log/QADetailModal';
 import StatusTabs from '@/components/community/StatusTabs';
-import QuestionForm from '@/components/community/QuestionForm';
 import PostCard from '@/components/community/PostCard';
 import DateRangeFilter from '@/components/common/DateRangeFilter';
 import Button from '@/components/common/Button';
@@ -337,12 +336,25 @@ const communityCategories = [
   { key: 'other', label: '其他' },
 ];
 
-const aiQuickChips = ['部署', '数据库', '提示词', '工具使用'];
-
-const suggestedCoaches = [
-  { id: 'c1', name: '教练小夏', specialty: '增长策略' },
-  { id: 'c2', name: '教练阿北', specialty: '技术架构' },
-  { id: 'c3', name: '教练Mia', specialty: '产品增长' },
+const coachShowcase = [
+  {
+    id: 'c1',
+    name: '教练小夏',
+    specialty: '增长策略',
+    responseTime: '平均 4 小时内回复',
+  },
+  {
+    id: 'c2',
+    name: '教练阿北',
+    specialty: '技术部署',
+    responseTime: '平均 6 小时内回复',
+  },
+  {
+    id: 'c3',
+    name: '教练Mia',
+    specialty: 'AIGC 应用',
+    responseTime: '平均 8 小时内回复',
+  },
 ];
 
 type AiMessage = {
@@ -350,21 +362,747 @@ type AiMessage = {
   content: string;
 };
 
-type QuestionFormPrefill = {
+type CoachPrefill = {
   title?: string;
-  content?: {
-    stage?: string;
-    problem?: string;
-    attempts?: string;
-  };
-  mentions?: string[];
-  includeAI?: boolean;
-  allowReplies?: boolean;
+  description?: string;
   aiSummary?: string;
   aiHistory?: string;
+  hasAIContext?: boolean;
+};
+
+type AttachmentStatus = 'uploading' | 'success' | 'failed';
+
+type AttachmentItem = {
+  id: string;
+  file: File;
+  kind: 'image' | 'video';
+  status: AttachmentStatus;
+  progress: number;
+  previewUrl: string;
+  error?: string;
+};
+
+const renderTextWithLinks = (text: string) => {
+  const parts = text.split(/(https?:\/\/[^\s]+)/g);
+  return parts.map((part, index) => {
+    if (/^https?:\/\//.test(part)) {
+      return (
+        <a key={`link-${index}`} href={part} target="_blank" rel="noreferrer">
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+};
+
+const renderAiContent = (content: string) => {
+  const parts = content.split('```');
+  return parts.map((part, index) => {
+    if (index % 2 === 1) {
+      return (
+        <pre key={`code-${index}`} className={styles.aiCode}>
+          <code>{part.trim()}</code>
+        </pre>
+      );
+    }
+
+    return part.split('\n').map((line, lineIndex) => {
+      if (!line) {
+        return <div key={`space-${index}-${lineIndex}`} className={styles.aiSpacer} />;
+      }
+      if (line.startsWith('> ')) {
+        return (
+          <blockquote key={`quote-${index}-${lineIndex}`} className={styles.aiQuote}>
+            {line.replace('> ', '')}
+          </blockquote>
+        );
+      }
+      return (
+        <p key={`text-${index}-${lineIndex}`} className={styles.aiText}>
+          {renderTextWithLinks(line)}
+        </p>
+      );
+    });
+  });
+};
+
+const AskCoachModalHeader = ({
+  coach,
+  onClose,
+}: {
+  coach: typeof coachShowcase[number];
+  onClose: () => void;
+}) => (
+  <div className={styles.askHeader}>
+    <div className={styles.askHeaderLeft}>
+      <div className={styles.askCoachAvatar}>{coach.name.slice(0, 1)}</div>
+      <div>
+        <div className={styles.askCoachNameRow}>
+          <span className={styles.askCoachName}>{coach.name}</span>
+          <span className={styles.askCoachBadge}>教练</span>
+          <span className={styles.askCoachStatusDot} title="在线" />
+        </div>
+        <div className={styles.askCoachMeta}>
+          擅长：{coach.specialty} · {coach.responseTime}
+        </div>
+      </div>
+    </div>
+    <button className={styles.askClose} onClick={onClose} aria-label="关闭">
+      ✕
+    </button>
+  </div>
+);
+
+const AskAIInlineHint = ({ onOpenAI }: { onOpenAI: () => void }) => (
+  <button type="button" className={styles.askAiHint} onClick={onOpenAI}>
+    先问 AI 航海助手试试 →
+  </button>
+);
+
+const QuestionTitleField = ({
+  value,
+  onChange,
+  error,
+  max,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  error?: string;
+  max: number;
+}) => (
+  <label className={styles.askField}>
+    问题标题
+    <input
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder="用一句话描述问题"
+      maxLength={max}
+    />
+    <div className={styles.askFieldMeta}>
+      {error ? <span className={styles.askError}>{error}</span> : <span />}
+      <span className={styles.askCount}>
+        {value.length}/{max}
+      </span>
+    </div>
+  </label>
+);
+
+const QuestionDescriptionField = ({
+  value,
+  onChange,
+  error,
+  max,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  error?: string;
+  max: number;
+}) => (
+  <label className={styles.askField}>
+    问题描述
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder="背景/现象/尝试/期望（支持 Markdown/代码块）"
+      maxLength={max}
+    />
+    <div className={styles.askFieldMeta}>
+      {error ? <span className={styles.askError}>{error}</span> : <span />}
+      <span className={styles.askCount}>
+        {value.length}/{max}
+      </span>
+    </div>
+  </label>
+);
+
+const AskCoachForm = ({
+  title,
+  description,
+  onTitleChange,
+  onDescriptionChange,
+  titleError,
+  descError,
+  onOpenAI,
+}: {
+  title: string;
+  description: string;
+  onTitleChange: (value: string) => void;
+  onDescriptionChange: (value: string) => void;
+  titleError?: string;
+  descError?: string;
+  onOpenAI: () => void;
+}) => (
+  <div className={styles.askForm}>
+    <QuestionTitleField value={title} onChange={onTitleChange} error={titleError} max={60} />
+    <QuestionDescriptionField
+      value={description}
+      onChange={onDescriptionChange}
+      error={descError}
+      max={1200}
+    />
+    <AskAIInlineHint onOpenAI={onOpenAI} />
+  </div>
+);
+
+const SettingToggleItem = ({
+  label,
+  desc,
+  checked,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  desc: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  disabled?: boolean;
+}) => (
+  <div className={styles.settingItem}>
+    <div>
+      <div className={styles.settingLabel}>{label}</div>
+      <div className={styles.settingDesc}>{desc}</div>
+    </div>
+    <label className={styles.settingToggle}>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        disabled={disabled}
+      />
+      <span />
+    </label>
+  </div>
+);
+
+const AskCoachSettings = ({
+  allowCrewAnswer,
+  attachAIContext,
+  onAllowChange,
+  onAttachChange,
+  hasAIContext,
+}: {
+  allowCrewAnswer: boolean;
+  attachAIContext: boolean;
+  onAllowChange: (value: boolean) => void;
+  onAttachChange: (value: boolean) => void;
+  hasAIContext: boolean;
+}) => (
+  <div className={styles.askSettings}>
+    <SettingToggleItem
+      label="允许船员回答"
+      desc="开启后，其他船员也可参与回答"
+      checked={allowCrewAnswer}
+      onChange={onAllowChange}
+    />
+    {hasAIContext && (
+      <SettingToggleItem
+        label="附带 AI 回答记录"
+        desc="帮助教练快速理解上下文"
+        checked={attachAIContext}
+        onChange={onAttachChange}
+      />
+    )}
+  </div>
+);
+
+const AskCoachModalFooter = ({
+  onCancel,
+  onSubmit,
+  canSubmit,
+  submitting,
+  primaryLabel = '提交给教练',
+  secondaryLabel = '取消',
+}: {
+  onCancel: () => void;
+  onSubmit: () => void;
+  canSubmit: boolean;
+  submitting: boolean;
+  primaryLabel?: string;
+  secondaryLabel?: string;
+}) => (
+  <div className={styles.askFooter}>
+    <button className={styles.askCancel} onClick={onCancel}>
+      {secondaryLabel}
+    </button>
+    <button
+      className={styles.askSubmit}
+      onClick={onSubmit}
+      disabled={!canSubmit || submitting}
+    >
+      {submitting ? '提交中…' : primaryLabel}
+    </button>
+  </div>
+);
+
+const AskCoachModal = ({
+  open,
+  coach,
+  prefill,
+  onClose,
+  onSubmitted,
+  aiMessages,
+  aiInputValue,
+  onAiInput,
+  onSendAi,
+  aiStatusLabel,
+  onAttachAI,
+}: {
+  open: boolean;
+  coach: typeof coachShowcase[number];
+  prefill: CoachPrefill;
+  onClose: () => void;
+  onSubmitted: (data: {
+    title: string;
+    description: string;
+    allowCrewAnswer: boolean;
+    attachAIContext: boolean;
+    aiSummary?: string;
+    aiHistory?: string;
+    attachments?: { type: 'image' | 'video'; url: string }[];
+  }) => void;
+  aiMessages: AiMessage[];
+  aiInputValue: string;
+  onAiInput: (value: string) => void;
+  onSendAi: () => void;
+  aiStatusLabel: string;
+  onAttachAI: (summary: string, history: string) => void;
+}) => {
+  const [mode, setMode] = useState<'coach' | 'ai'>('coach');
+  const [title, setTitle] = useState(prefill.title ?? '');
+  const [description, setDescription] = useState(prefill.description ?? '');
+  const [allowCrewAnswer, setAllowCrewAnswer] = useState(true);
+  const [attachAIContext, setAttachAIContext] = useState(Boolean(prefill.hasAIContext));
+  const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [previewItem, setPreviewItem] = useState<AttachmentItem | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState<{ title?: string; description?: string }>({});
+  const [attachmentError, setAttachmentError] = useState('');
+  const uploadTimers = React.useRef<Record<string, number>>({});
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const attachmentsRef = React.useRef<AttachmentItem[]>([]);
+  const committedUrlsRef = React.useRef<Set<string>>(new Set());
+
+  const hasUploading = attachments.some((item) => item.status === 'uploading');
+
+  useEffect(() => {
+    if (open) {
+      setTitle(prefill.title ?? '');
+      setDescription(prefill.description ?? '');
+      setAttachAIContext(Boolean(prefill.hasAIContext));
+      setAllowCrewAnswer(true);
+      setErrors({});
+      setMode('coach');
+      if (attachmentsRef.current.length > 0) {
+        attachmentsRef.current.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+        Object.values(uploadTimers.current).forEach((timerId) => window.clearInterval(timerId));
+        uploadTimers.current = {};
+      }
+      setAttachments([]);
+      setAttachmentError('');
+      setPreviewItem(null);
+    }
+  }, [open, prefill]);
+
+  const canSubmit = Boolean(title.trim()) && Boolean(description.trim());
+
+  useEffect(() => {
+    attachmentsRef.current = attachments;
+  }, [attachments]);
+
+  useEffect(() => {
+    return () => {
+      Object.values(uploadTimers.current).forEach((timerId) => window.clearInterval(timerId));
+      attachmentsRef.current.forEach((item) => {
+        if (!committedUrlsRef.current.has(item.previewUrl)) {
+          URL.revokeObjectURL(item.previewUrl);
+        }
+      });
+    };
+  }, []);
+
+  const startUpload = (id: string) => {
+    if (uploadTimers.current[id]) {
+      window.clearInterval(uploadTimers.current[id]);
+    }
+    uploadTimers.current[id] = window.setInterval(() => {
+      setAttachments((prev) =>
+        prev.map((item) => {
+          if (item.id !== id) return item;
+          const next = Math.min(100, item.progress + Math.random() * 18 + 8);
+          if (next >= 100) {
+            window.clearInterval(uploadTimers.current[id]);
+            return { ...item, progress: 100, status: 'success' };
+          }
+          return { ...item, progress: next };
+        })
+      );
+    }, 260);
+  };
+
+  const appendFiles = (files: File[]) => {
+    if (!files.length) return;
+    setAttachmentError('');
+    const nextItems: AttachmentItem[] = [];
+    const existingImages = attachments.filter((item) => item.kind === 'image').length;
+    const existingVideos = attachments.filter((item) => item.kind === 'video').length;
+    let imagesCount = existingImages;
+    let videosCount = existingVideos;
+    files.forEach((file) => {
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+      if (!isImage && !isVideo) {
+        setAttachmentError('仅支持上传图片或视频文件');
+        return;
+      }
+      if (isImage && imagesCount >= 9) {
+        setAttachmentError('图片最多上传 9 张');
+        return;
+      }
+      if (isVideo && videosCount >= 2) {
+        setAttachmentError('视频最多上传 2 个');
+        return;
+      }
+      const maxSize = isImage ? 10 * 1024 * 1024 : 100 * 1024 * 1024;
+      let previewUrl = '';
+      try {
+        previewUrl = URL.createObjectURL(file);
+      } catch (error) {
+        setAttachmentError('文件处理失败，请重试');
+        return;
+      }
+      const item: AttachmentItem = {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        file,
+        kind: isImage ? 'image' : 'video',
+        status: file.size > maxSize ? 'failed' : 'uploading',
+        progress: file.size > maxSize ? 0 : 5,
+        previewUrl,
+        error: file.size > maxSize ? '文件过大' : undefined,
+      };
+      nextItems.push(item);
+      if (isImage) imagesCount += 1;
+      if (isVideo) videosCount += 1;
+    });
+    if (!nextItems.length) return;
+    setAttachments((prev) => [...prev, ...nextItems]);
+    nextItems.forEach((item) => {
+      if (item.status === 'uploading') startUpload(item.id);
+    });
+  };
+
+  const handleFiles = (fileList: FileList | null) => {
+    if (!fileList) return;
+    appendFiles(Array.from(fileList));
+  };
+
+  const handleRemoveAttachment = (id: string) => {
+    setAttachments((prev) => {
+      const item = prev.find((entry) => entry.id === id);
+      if (item) {
+        URL.revokeObjectURL(item.previewUrl);
+        committedUrlsRef.current.delete(item.previewUrl);
+        if (uploadTimers.current[id]) {
+          window.clearInterval(uploadTimers.current[id]);
+        }
+      }
+      return prev.filter((entry) => entry.id !== id);
+    });
+  };
+
+  const handleRetry = (id: string) => {
+    setAttachments((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, status: 'uploading', progress: 8, error: undefined } : item
+      )
+    );
+    startUpload(id);
+  };
+
+  const handleClearAll = () => {
+    attachments.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+    Object.values(uploadTimers.current).forEach((timerId) => window.clearInterval(timerId));
+    uploadTimers.current = {};
+    setAttachments([]);
+  };
+
+  const maybeAppendAiSummary = () => {
+    const summary = prefill.aiSummary || '';
+    const history = prefill.aiHistory || '';
+    if (summary && !description.includes('AI回答摘要')) {
+      setDescription((prev) => `${prev.trim()}\n\nAI回答摘要：\n${summary}`.trim());
+    }
+    onAttachAI(summary, history);
+    setAttachAIContext(true);
+  };
+
+  const handleSubmit = async () => {
+    const nextErrors: { title?: string; description?: string } = {};
+    if (!title.trim()) nextErrors.title = '请填写标题';
+    if (!description.trim()) nextErrors.description = '请填写描述';
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+    if (hasUploading) return;
+    setSubmitting(true);
+    const submittedAttachments = attachments
+      .filter((item) => item.status === 'success')
+      .map((item) => ({
+        type: item.kind,
+        url: item.previewUrl,
+      }));
+    submittedAttachments.forEach((item) => committedUrlsRef.current.add(item.url));
+    await Promise.resolve(
+      onSubmitted({
+        title,
+        description,
+        allowCrewAnswer,
+        attachAIContext,
+        aiSummary: prefill.aiSummary,
+        aiHistory: prefill.aiHistory,
+        attachments: submittedAttachments,
+      })
+    );
+    setSubmitting(false);
+  };
+
+  if (!open) return null;
+
+  const handleClose = () => {
+    const hasDraft =
+      Boolean(title.trim()) ||
+      Boolean(description.trim()) ||
+      attachments.length > 0 ||
+      hasUploading;
+    if (hasDraft) {
+      const confirmed = window.confirm('当前有未提交内容，确认关闭？');
+      if (!confirmed) return;
+    }
+    onClose();
+  };
+
+  return (
+    <div className={styles.modalBackdrop} onClick={handleClose}>
+      <div
+        className={`${styles.askModal} ${styles[`askModal${mode}`]}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {mode === 'coach' ? (
+          <>
+            <AskCoachModalHeader coach={coach} onClose={handleClose} />
+            <div className={styles.askContent}>
+              <AskCoachForm
+                title={title}
+                description={description}
+                onTitleChange={setTitle}
+                onDescriptionChange={setDescription}
+                titleError={errors.title}
+                descError={errors.description}
+                onOpenAI={() => setMode('ai')}
+              />
+              <div className={styles.attachmentSection}>
+                <div className={styles.attachmentHeader}>
+                  <div>
+                    <div className={styles.attachmentTitle}>附件</div>
+                    <div className={styles.attachmentMeta}>
+                      图片 jpg/png/webp ≤10MB · 最多 9 张，视频 mp4/mov ≤100MB · 最多 2 个
+                    </div>
+                  </div>
+                  {attachments.length > 0 && (
+                    <button className={styles.attachmentClear} onClick={handleClearAll}>
+                      清空
+                    </button>
+                  )}
+                </div>
+                <div
+                  className={`${styles.attachmentDrop} ${isDragging ? styles.attachmentDropActive : ''}`}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    handleFiles(e.dataTransfer.files);
+                  }}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime"
+                    onChange={(e) => handleFiles(e.target.files)}
+                  />
+                  <button onClick={() => fileInputRef.current?.click()} type="button">
+                    上传图片/视频
+                  </button>
+                  <span>或拖拽到此处</span>
+                </div>
+                {attachmentError && (
+                  <div className={styles.attachmentErrorText}>{attachmentError}</div>
+                )}
+                {attachments.length > 0 && (
+                  <div className={styles.attachmentGrid}>
+                    {attachments.map((item) => (
+                      <div key={item.id} className={styles.attachmentTile}>
+                        <button
+                          className={styles.attachmentPreview}
+                          onClick={() => setPreviewItem(item)}
+                          type="button"
+                        >
+                          {item.kind === 'image' ? (
+                            <img src={item.previewUrl} alt="附件预览" />
+                          ) : (
+                            <>
+                              <video src={item.previewUrl} muted playsInline />
+                              <span className={styles.attachmentPlay}>▶</span>
+                            </>
+                          )}
+                        </button>
+                        {item.status === 'uploading' && (
+                          <div className={styles.attachmentProgress}>
+                            <span style={{ width: `${item.progress}%` }} />
+                          </div>
+                        )}
+                        {item.status === 'failed' && (
+                          <button
+                            className={styles.attachmentRetry}
+                            onClick={() => handleRetry(item.id)}
+                          >
+                            上传失败 · 点击重试
+                          </button>
+                        )}
+                        <button
+                          className={styles.attachmentRemoveIcon}
+                          onClick={() => handleRemoveAttachment(item.id)}
+                          aria-label="删除附件"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <AskCoachSettings
+                allowCrewAnswer={allowCrewAnswer}
+                attachAIContext={attachAIContext}
+                onAllowChange={setAllowCrewAnswer}
+                onAttachChange={setAttachAIContext}
+                hasAIContext={Boolean(prefill.hasAIContext)}
+              />
+            </div>
+            {previewItem && (
+              <div className={styles.previewBackdrop} onClick={() => setPreviewItem(null)}>
+                <div className={styles.previewBody} onClick={(e) => e.stopPropagation()}>
+                  {previewItem.kind === 'image' ? (
+                    <img src={previewItem.previewUrl} alt={previewItem.file.name} />
+                  ) : (
+                    <video src={previewItem.previewUrl} controls />
+                  )}
+                </div>
+              </div>
+            )}
+            <AskCoachModalFooter
+              onCancel={handleClose}
+              onSubmit={handleSubmit}
+              canSubmit={canSubmit && !hasUploading}
+              submitting={submitting}
+            />
+          </>
+        ) : (
+          <>
+            <div className={styles.askContent}>
+              <div className={styles.aiModeHeader}>
+                <button className={styles.aiBack} onClick={() => setMode('coach')}>
+                  ← 返回向教练提问
+                </button>
+                <div className={styles.aiModeTitleRow}>
+                  <img className={styles.aiModeAvatar} src="/ai-robot.png" alt="AI 航海助手" />
+                  <div>
+                    <div className={styles.aiModeTitle}>AI 航海助手</div>
+                    <div className={styles.aiModeStatus}>{aiStatusLabel}</div>
+                  </div>
+                </div>
+              </div>
+              <div className={styles.aiModeBody}>
+                {aiMessages.length === 0 && (
+                  <div className={styles.aiEmpty}>
+                    直接描述你的问题，AI 会先给出排查方向与参考方案。
+                  </div>
+                )}
+                {aiMessages.map((msg, index) => (
+                  <div
+                    key={`${msg.role}-${index}`}
+                    className={`${styles.aiMessage} ${styles[`ai${msg.role}`]}`}
+                  >
+                    <div className={styles.aiBubble}>{renderAiContent(msg.content)}</div>
+                  </div>
+                ))}
+              </div>
+              <div className={styles.aiInputRow}>
+                <input
+                  value={aiInputValue}
+                  onChange={(e) => onAiInput(e.target.value)}
+                  placeholder="直接向 AI 提问，立即获得解答"
+                />
+                <button onClick={onSendAi}>发送</button>
+              </div>
+              <div className={styles.aiModeHint}>
+                推荐先问 AI，80% 常见问题可即时解决；未解决再向教练提问
+              </div>
+            </div>
+            <AskCoachModalFooter
+              onCancel={handleClose}
+              onSubmit={() => {
+                maybeAppendAiSummary();
+                setMode('coach');
+              }}
+              canSubmit
+              submitting={false}
+              primaryLabel="没解决？转向教练提问"
+              secondaryLabel="关闭"
+            />
+          </>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default function HomePage() {
+  const safeSessionGet = (key: string) => {
+    try {
+      return window.sessionStorage.getItem(key);
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const safeSessionSet = (key: string, value: string) => {
+    try {
+      window.sessionStorage.setItem(key, value);
+    } catch (error) {
+      return;
+    }
+  };
+
+  const safeLocalGet = (key: string) => {
+    try {
+      return window.localStorage.getItem(key);
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const safeLocalSet = (key: string, value: string) => {
+    try {
+      window.localStorage.setItem(key, value);
+    } catch (error) {
+      return;
+    }
+  };
   // 主Tab状态
   const [activeMainTab, setActiveMainTab] = useState<'log' | 'community'>('log');
 
@@ -381,7 +1119,6 @@ export default function HomePage() {
 
   // 求助站状态
   const [communityTab, setCommunityTab] = useState<'all' | 'pending' | 'resolved'>('all');
-  const [showForm, setShowForm] = useState(false);
   const [activeVoyageId, setActiveVoyageId] = useState<'v1' | 'v2'>('v1');
   const [posts, setPosts] = useState<Post[]>(mockPosts);
   const [questionLeaders, setQuestionLeaders] = useState(voyageData.v1.questionLeaders);
@@ -395,22 +1132,45 @@ export default function HomePage() {
   const [communitySort, setCommunitySort] = useState<'latest' | 'hot'>('latest');
   const [leaderboardTab, setLeaderboardTab] = useState<'question' | 'coach'>('question');
   const [leaderboardRange, setLeaderboardRange] = useState('7d');
-  const [showSearchSuggest, setShowSearchSuggest] = useState(false);
-  const [aiOpen, setAiOpen] = useState(false);
+  const [coachModalOpen, setCoachModalOpen] = useState(false);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiStatus, setAiStatus] = useState<'available' | 'thinking' | 'online'>('available');
+  const [showRobot, setShowRobot] = useState(true);
+  const [showRobotTip, setShowRobotTip] = useState(false);
+  const [isRobotCollapsed, setIsRobotCollapsed] = useState(false);
+  const [isRobotHover, setIsRobotHover] = useState(false);
+  const [robotPos, setRobotPos] = useState<{ x: number; y: number } | null>(null);
+  const [robotDragged, setRobotDragged] = useState(false);
+  const [playRobotIntro, setPlayRobotIntro] = useState(false);
   const [aiInput, setAiInput] = useState('');
   const [aiMessages, setAiMessages] = useState<AiMessage[]>([]);
-  const [showAiGuide, setShowAiGuide] = useState(false);
-  const [skipAiGuide, setSkipAiGuide] = useState(false);
-  const [formPrefill, setFormPrefill] = useState<QuestionFormPrefill | null>(null);
+  const [voyageSwitchOpen, setVoyageSwitchOpen] = useState(false);
+  const [showReminder, setShowReminder] = useState(true);
+  const hoverCollapseTimer = React.useRef<number | null>(null);
+  const robotPosRef = React.useRef<{ x: number; y: number } | null>(null);
+  const dragDataRef = React.useRef<{
+    offsetX: number;
+    offsetY: number;
+    startX: number;
+    startY: number;
+  } | null>(null);
+  const dragMovedRef = React.useRef(false);
+  const userPanelRef = React.useRef<HTMLDivElement | null>(null);
+  const robotRef = React.useRef<HTMLButtonElement | null>(null);
+  const [aiSummary, setAiSummary] = useState('');
+  const [aiHistory, setAiHistory] = useState('');
+  const [coachPrefill, setCoachPrefill] = useState<CoachPrefill>({
+    title: '',
+    description: '',
+    hasAIContext: false,
+  });
+  const [selectedCoach, setSelectedCoach] = useState(coachShowcase[0]);
+  const aiInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // 页面加载时自动加载群聊提取的知识库
   useEffect(() => {
     loadExtractedQAs();
     loadTagClickCounts();
-    const saved = localStorage.getItem('skipAiGuide');
-    if (saved === 'true') {
-      setSkipAiGuide(true);
-    }
   }, []);
 
   useEffect(() => {
@@ -422,7 +1182,149 @@ export default function HomePage() {
     setCommunitySearch('');
     setCommunityTab('all');
     setCommunityCategory('all');
+    setVoyageSwitchOpen(false);
+    setShowReminder(true);
   }, [activeVoyageId]);
+
+  useEffect(() => {
+    if (aiModalOpen) {
+      setTimeout(() => aiInputRef.current?.focus(), 0);
+    }
+  }, [aiModalOpen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handleScroll = () => {
+      setIsRobotCollapsed(window.scrollY > 200);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    robotPosRef.current = robotPos;
+  }, [robotPos]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const seenKey = 'aiRobotSeen';
+    const seen = safeSessionGet(seenKey);
+    if (seen) return undefined;
+    setShowRobot(false);
+    const showTimer = window.setTimeout(() => {
+      setShowRobot(true);
+      setShowRobotTip(true);
+      setPlayRobotIntro(true);
+      safeSessionSet(seenKey, '1');
+    }, 800);
+    const tipTimer = window.setTimeout(() => {
+      setShowRobotTip(false);
+    }, 2800);
+    const introTimer = window.setTimeout(() => {
+      setPlayRobotIntro(false);
+    }, 1800);
+    return () => {
+      window.clearTimeout(showTimer);
+      window.clearTimeout(tipTimer);
+      window.clearTimeout(introTimer);
+      if (hoverCollapseTimer.current) {
+        window.clearTimeout(hoverCollapseTimer.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    let rafId = 0;
+    const getRightOverlay = () => {
+      const selectors = [
+        '[data-drawer="right"]',
+        '[data-overlay="right"]',
+        '.drawer-right',
+        '.right-drawer',
+        '.side-drawer.right',
+        '.ant-drawer-right',
+      ];
+      for (const sel of selectors) {
+        const el = document.querySelector(sel) as HTMLElement | null;
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.width > 260 && rect.right >= window.innerWidth - 4) {
+          return rect;
+        }
+      }
+      return null;
+    };
+
+    const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+    const updatePosition = () => {
+      if (robotDragged) return;
+      const panelRect = userPanelRef.current?.getBoundingClientRect();
+      const robotRect = robotRef.current?.getBoundingClientRect();
+      const width = robotRect?.width ?? 96;
+      const height = robotRect?.height ?? 140;
+      const baseSide = Math.max(24, (window.innerWidth - 1200) / 2 + 24);
+      let x = panelRect ? panelRect.right + 12 : window.innerWidth - width - baseSide;
+      let y = panelRect ? panelRect.top + 12 : 140;
+      const overlay = getRightOverlay();
+      if (overlay && x + width > overlay.left - 12) {
+        x = overlay.left - width - 12;
+      }
+      x = clamp(x, baseSide, window.innerWidth - width - baseSide);
+      y = clamp(y, 80, window.innerHeight - height - 24);
+      const footer =
+        document.querySelector('footer') ||
+        document.getElementById('footer') ||
+        document.querySelector('[data-footer]');
+      if (footer) {
+        const rect = (footer as HTMLElement).getBoundingClientRect();
+        if (rect.top < window.innerHeight) {
+          const maxY = rect.top - height - 16;
+          y = clamp(y, 80, maxY);
+        }
+      }
+      setRobotPos({ x, y });
+    };
+
+    const scheduleUpdate = () => {
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = 0;
+        updatePosition();
+      });
+    };
+
+    const observer = new MutationObserver(scheduleUpdate);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+    window.addEventListener('resize', scheduleUpdate);
+    window.addEventListener('scroll', scheduleUpdate, { passive: true });
+    scheduleUpdate();
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', scheduleUpdate);
+      window.removeEventListener('scroll', scheduleUpdate);
+      if (rafId) window.cancelAnimationFrame(rafId);
+    };
+  }, [robotDragged, isRobotCollapsed, activeMainTab]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const saved = safeLocalGet('aiRobotPos');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as { x: number; y: number };
+        if (typeof parsed.x === 'number' && typeof parsed.y === 'number') {
+          setRobotPos(parsed);
+          setRobotDragged(true);
+        }
+      } catch (error) {
+        console.warn('读取机器人位置失败', error);
+      }
+    }
+  }, []);
 
   // 加载标签点击统计（从localStorage）
   const loadTagClickCounts = () => {
@@ -549,10 +1451,6 @@ export default function HomePage() {
     resolved: posts.filter((p) => p.status === 'resolved').length,
   };
 
-  const similarPosts = communitySearch
-    ? posts.filter((post) => post.title.toLowerCase().includes(communitySearch.toLowerCase()))
-    : posts;
-
   const handleTagClick = (tag: string) => {
     setSelectedTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
@@ -607,8 +1505,6 @@ export default function HomePage() {
       updatedAt: now,
     };
     setPosts((prev) => [newPost, ...prev]);
-    setShowForm(false);
-    setFormPrefill(null);
   };
 
   const handleLogDateRangeChange = (start: Date | null, end: Date | null) => {
@@ -621,140 +1517,82 @@ export default function HomePage() {
     setCommunityEndDate(end);
   };
 
-  const handleSearchFocus = () => {
-    setShowSearchSuggest(true);
+  const openCoachModal = (coach = coachShowcase[0]) => {
+    setSelectedCoach(coach);
+    setCoachModalOpen(true);
+    setCoachPrefill({ title: '', description: '', hasAIContext: false });
   };
 
-  const handleSearchBlur = () => {
-    setTimeout(() => setShowSearchSuggest(false), 120);
+  const closeCoachModal = () => {
+    setCoachModalOpen(false);
   };
 
-  const scrollToPost = (postId: string) => {
-    const element = document.getElementById(`post-${postId}`);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-    setShowSearchSuggest(false);
+  const openAiModal = () => {
+    setAiModalOpen(true);
   };
 
-  const openAiDrawer = () => {
-    setAiOpen(true);
-    if (communitySearch) {
-      setAiInput(communitySearch);
-    }
-  };
-
-  const closeAiDrawer = () => {
-    setAiOpen(false);
-  };
-
-  const openHumanForm = (prefill?: QuestionFormPrefill) => {
-    setFormPrefill(prefill || null);
-    setShowForm(true);
-  };
-
-  const handleAskHumanClick = () => {
-    if (!skipAiGuide) {
-      setShowAiGuide(true);
-      return;
-    }
-    openHumanForm();
-  };
-
-  const handleConfirmAskHuman = () => {
-    localStorage.setItem('skipAiGuide', 'true');
-    setSkipAiGuide(true);
-    setShowAiGuide(false);
-    openHumanForm();
-  };
-
-  const handleAiGuideAskAi = () => {
-    setShowAiGuide(false);
-    openAiDrawer();
+  const closeAiModal = () => {
+    setAiModalOpen(false);
   };
 
   const generateAiReply = (question: string) => {
     return `给你一个快速排查思路：\n\n1. 先确认是否为环境变量前缀导致前端读取不到。\n2. 如果是服务端接口，请检查部署环境是否有刷新。\n\n示例：\n\`\`\`bash\nNEXT_PUBLIC_API_BASE=https://example.com\n\`\`\`\n\n> 如仍有问题，可以贴出报错日志，我来帮你定位。`;
   };
 
-  const renderAiContent = (content: string) => {
-    const parts = content.split('```');
-    return parts.map((part, index) => {
-      if (index % 2 === 1) {
-        return (
-          <pre key={`code-${index}`} className={styles.aiCode}>
-            <code>{part.trim()}</code>
-          </pre>
-        );
-      }
-
-      return part.split('\n').map((line, lineIndex) => {
-        if (!line) {
-          return <div key={`space-${index}-${lineIndex}`} className={styles.aiSpacer} />;
-        }
-        if (line.startsWith('> ')) {
-          return (
-            <blockquote key={`quote-${index}-${lineIndex}`} className={styles.aiQuote}>
-              {line.replace('> ', '')}
-            </blockquote>
-          );
-        }
-        return (
-          <p key={`text-${index}-${lineIndex}`} className={styles.aiText}>
-            {line}
-          </p>
-        );
-      });
-    });
-  };
 
   const handleSendAi = () => {
     const text = aiInput.trim();
     if (!text) return;
-    const nextMessages: AiMessage[] = [
-      ...aiMessages,
-      { role: 'user', content: text },
-      { role: 'ai', content: generateAiReply(text) },
-    ];
-    setAiMessages(nextMessages);
+    setAiMessages((prev) => [...prev, { role: 'user', content: text }]);
     setAiInput('');
+    setAiStatus('thinking');
+    const aiReply = generateAiReply(text);
+    window.setTimeout(() => {
+      setAiMessages((prev) => {
+        const nextMessages: AiMessage[] = [...prev, { role: 'ai', content: aiReply }];
+        const summary = aiReply.split('\n').slice(0, 4).join('\n');
+        const history = nextMessages
+          .map((msg) => `${msg.role === 'user' ? '用户' : 'AI'}：${msg.content}`)
+          .join('\n');
+        setAiSummary(summary);
+        setAiHistory(history);
+        setCoachPrefill({
+          title: text.slice(0, 32),
+          description: `${text}\n\nAI回答摘要：\n${summary}`,
+          hasAIContext: true,
+          aiSummary: summary,
+          aiHistory: history,
+        });
+        return nextMessages;
+      });
+      setAiStatus('online');
+    }, 700);
   };
 
-  const handleAiChipClick = (chip: string) => {
-    setAiInput(chip);
-  };
-
-  const handleAiToHuman = () => {
-    const lastUser = [...aiMessages].reverse().find((msg) => msg.role === 'user');
-    const lastAi = [...aiMessages].reverse().find((msg) => msg.role === 'ai');
-    const question = lastUser?.content || communitySearch || '问题描述';
-    const summary = lastAi?.content?.split('\n').slice(0, 4).join('\n') || '';
-    const aiHistory = aiMessages
-      .map((msg) => `${msg.role === 'user' ? '用户' : 'AI'}：${msg.content}`)
-      .join('\n');
-
-    const prefill: QuestionFormPrefill = {
-      title: question.slice(0, 32),
+  const handleSubmitCoachQuestion = (data: {
+    title: string;
+    description: string;
+    allowCrewAnswer: boolean;
+    attachAIContext: boolean;
+    aiSummary?: string;
+    aiHistory?: string;
+    attachments?: { type: 'image' | 'video'; url: string }[];
+  }) => {
+    const payload: CreatePostData = {
+      title: data.title.trim(),
       content: {
-        stage: communityCategory !== 'all' ? communityCategory : '',
-        problem: `${question}\n\nAI回答摘要：\n${summary}`,
+        stage: '',
+        problem: data.description.trim(),
         attempts: '',
       },
-      includeAI: true,
-      allowReplies: true,
-      aiSummary: summary,
-      aiHistory,
+      allowReplies: data.allowCrewAnswer,
+      includeAI: data.attachAIContext,
+      aiSummary: data.attachAIContext ? data.aiSummary : undefined,
+      aiHistory: data.attachAIContext ? data.aiHistory : undefined,
+      attachments: data.attachments || [],
     };
-    setAiOpen(false);
-    openHumanForm(prefill);
-  };
-
-  const handleSelectCoachSuggest = (coachName: string) => {
-    setShowSearchSuggest(false);
-    openHumanForm({
-      mentions: [coachName],
-      allowReplies: true,
-    });
+    handleSubmitPost(payload);
+    setCoachModalOpen(false);
   };
 
   const handleScrollLeaderboard = (tab: 'question' | 'coach') => {
@@ -766,6 +1604,61 @@ export default function HomePage() {
   };
 
   const activeVoyage = voyageOptions.find((voyage) => voyage.id === activeVoyageId);
+  const voyageName = (activeVoyage?.name || '').replace(/\s+/g, '');
+  const displayName = currentUser.name === '当前用户' ? '香菜' : currentUser.name;
+  const isRobotExpanded = !isRobotCollapsed || isRobotHover;
+  const aiStatusLabel =
+    aiStatus === 'thinking' ? '思考中…' : aiStatus === 'online' ? '在线' : '可帮忙';
+  const aiWrapperStyle =
+    robotPos && showRobot
+      ? {
+          left: robotPos.x,
+          top: robotPos.y,
+        }
+      : undefined;
+
+  const HeroSection = () => (
+    <div className={styles.heroSection}>
+      <div className={styles.heroPanel}>
+        <div className={styles.heroIcon}>
+          <img src="/ai-logo.png" alt="AI" className={styles.heroIconImage} />
+        </div>
+        <div className={styles.heroContent}>
+          <div className={styles.heroTitle}>求助站</div>
+          <div className={styles.heroMeta}>562 位提问者 · 10000+ 问题</div>
+          <div className={styles.heroDesc}>
+            这里汇聚航海伙伴与教练的实战解法，帮助你快速解决关键问题。
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const CoachFloatingCards = () => (
+    <div className={styles.coachSection}>
+      <div className={styles.coachSectionTitle}>本期航海教练</div>
+      <div className={styles.coachFloatingGrid}>
+        {coachShowcase.map((coach) => (
+          <div key={coach.id} className={styles.coachFloatingCard}>
+            <div className={styles.coachFloatingHeader}>
+              <div className={styles.coachFloatingAvatar}>{coach.name.slice(0, 1)}</div>
+              <div>
+                <div className={styles.coachFloatingName}>{coach.name}</div>
+                <div className={styles.coachFloatingMeta}>{coach.specialty}</div>
+              </div>
+            </div>
+            <div className={styles.coachFloatingBubble}>
+              擅长{coach.specialty}，可以帮你快速梳理关键思路。
+            </div>
+            <button className={styles.coachFloatingBtn} onClick={() => openCoachModal(coach)}>
+              向教练提问
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
 
   return (
     <div>
@@ -815,151 +1708,45 @@ export default function HomePage() {
         <div className={styles.communityRoot}>
           <div className={styles.communityGrid}>
             <div className={styles.communityMain}>
-              <div className={styles.communityHero}>
-              <div className={styles.communityIntroCard}>
-                <div className={styles.introIcon}>AI</div>
-                <div className={styles.introContent}>
-                  <div className={styles.introTitle}>求助站</div>
-                  <div className={styles.introMeta}>562位提问者，共10000+个问题</div>
-                  <div className={styles.introDesc}>
-                    <span className={styles.introDescIcon}>✨</span>
-                    欢迎来到求助站！这里汇聚航海伙伴与教练的实战解法，专注解决关键问题。
-                  </div>
-                </div>
-                <div className={styles.introActions}>
-                  <Button variant="primary" className={styles.aiPrimary} onClick={openAiDrawer}>
-                    🤖 先问 AI 航海助手
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className={styles.askSecondary}
-                    onClick={handleAskHumanClick}
-                  >
-                    ✍️ 向教练/伙伴求助
-                  </Button>
-                </div>
-              </div>
-              <div className={styles.topActionCard}>
-                <div className={styles.topRow}>
-                  <div className={styles.searchBox}>
-                    <span className={styles.searchIcon}>⌕</span>
-                      <input
-                        className={styles.searchInput}
-                        placeholder="搜索历史问题 / 回答 / 教练关键词，例如：Next.js 环境变量"
-                        value={communitySearch}
-                        onChange={(e) => setCommunitySearch(e.target.value)}
-                        onFocus={handleSearchFocus}
-                        onBlur={handleSearchBlur}
-                      />
-                      {showSearchSuggest && communitySearch && (
-                        <div className={styles.searchSuggest}>
-                          <div className={styles.suggestGroup}>
-                            <div className={styles.suggestTitle}>相似问题</div>
-                            {similarPosts.slice(0, 3).map((post) => (
-                              <button
-                                key={post._id}
-                                className={styles.suggestItem}
-                                onClick={() => {
-                                  setCommunitySearch(post.title);
-                                  scrollToPost(post._id);
-                                }}
-                              >
-                                <span>{post.title}</span>
-                                {post.status === 'resolved' && (
-                                  <span className={styles.suggestBadge}>已解决</span>
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                          <div className={styles.suggestGroup}>
-                            <div className={styles.suggestTitle}>热门答案</div>
-                            {posts
-                              .flatMap((post) =>
-                                (post.replies || []).map((reply) => ({
-                                  id: reply._id,
-                                  postId: post._id,
-                                  content: reply.content,
-                                }))
-                              )
-                              .slice(0, 3)
-                              .map((reply) => (
-                                <button
-                                  key={reply.id}
-                                  className={styles.suggestItem}
-                                  onClick={() => scrollToPost(reply.postId)}
-                                >
-                                  {reply.content.slice(0, 36)}...
-                                </button>
-                              ))}
-                          </div>
-                          <div className={styles.suggestGroup}>
-                            <div className={styles.suggestTitle}>推荐教练</div>
-                            {suggestedCoaches.map((coach) => (
-                              <button
-                                key={coach.id}
-                                className={styles.suggestItem}
-                                onClick={() => handleSelectCoachSuggest(coach.name)}
-                              >
-                                <span>@{coach.name}</span>
-                                <span className={styles.suggestMeta}>{coach.specialty}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <button className={styles.quickFilter}>快捷筛选</button>
-                </div>
+              <section className={styles.heroContainer}>
+                <HeroSection />
+                <CoachFloatingCards />
+              </section>
 
-                <div className={styles.topRow}>
-                  <div className={styles.hintText}>
-                    推荐先问 AI，80% 常见问题可立即解决；未解决再向教练或伙伴发起求助。
-                  </div>
-                </div>
-
-                </div>
-              </div>
-
-              <div className={styles.categoryRow}>
-                {communityCategories.map((category) => (
-                  <button
-                    key={category.key}
-                    className={`${styles.categoryPill} ${
-                      communityCategory === category.key ? styles.categoryPillActive : ''
-                    }`}
-                    onClick={() => setCommunityCategory(category.key)}
-                  >
-                    {category.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className={styles.filterRow}>
-                <StatusTabs activeTab={communityTab} onTabChange={setCommunityTab} counts={postCounts} />
-                <div className={styles.filterControls}>
-                  <select
-                    className={styles.filterSelect}
-                    value={communityCoach}
-                    onChange={(e) => setCommunityCoach(e.target.value)}
-                  >
-                    <option value="all">全部教练</option>
-                    <option value="教练小夏">教练小夏</option>
-                    <option value="教练阿北">教练阿北</option>
-                    <option value="教练Mia">教练Mia</option>
-                  </select>
-                  <select
-                    className={styles.filterSelect}
-                    value={communitySort}
-                    onChange={(e) => setCommunitySort(e.target.value as 'latest' | 'hot')}
-                  >
-                    <option value="latest">最新</option>
-                    <option value="hot">最热</option>
-                  </select>
-                  <DateRangeFilter
-                    startDate={communityStartDate || undefined}
-                    endDate={communityEndDate || undefined}
-                    onRangeChange={handleCommunityDateRangeChange}
+              <div className={styles.statusRow}>
+                <div className={styles.controlBar}>
+                  <StatusTabs
+                    activeTab={communityTab}
+                    onTabChange={setCommunityTab}
+                    counts={postCounts}
                   />
+                  <div className={styles.controlActions}>
+                    <div className={styles.toolbarControls}>
+                      <select
+                        className={styles.toolbarSelect}
+                        value={communityCoach}
+                        onChange={(e) => setCommunityCoach(e.target.value)}
+                      >
+                        <option value="all">全部教练</option>
+                        <option value="教练小夏">教练小夏</option>
+                        <option value="教练阿北">教练阿北</option>
+                        <option value="教练Mia">教练Mia</option>
+                      </select>
+                      <select
+                        className={styles.toolbarSelect}
+                        value={communitySort}
+                        onChange={(e) => setCommunitySort(e.target.value as 'latest' | 'hot')}
+                      >
+                        <option value="latest">最新发布</option>
+                        <option value="hot">最多互动</option>
+                      </select>
+                      <DateRangeFilter
+                        startDate={communityStartDate || undefined}
+                        endDate={communityEndDate || undefined}
+                        onRangeChange={handleCommunityDateRangeChange}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -977,74 +1764,146 @@ export default function HomePage() {
             </div>
 
             <aside className={styles.communitySidebar}>
-              <div className={`${styles.sidebarCard} ${styles.userPanel}`}>
-                <div className={styles.userCardHeader}>
-                  <div className={styles.userAvatarLarge}>{currentUser.name.slice(0, 1)}</div>
-                  <div>
-                    <div className={styles.userName}>{currentUser.name}</div>
-                    <span className={styles.userRoleBadge}>{currentUser.role}</span>
+              <div ref={userPanelRef} className={styles.userPanelA}>
+                <div className={styles.profileCard}>
+                  <div className={styles.profileAvatar}>{displayName.slice(0, 1)}</div>
+                  <div className={styles.profileInfo}>
+                    <div className={styles.profileNameRow}>
+                      <span className={styles.profileName}>{displayName}</span>
+                      <span className={styles.profileRoleTag}>{currentUser.role}</span>
+                    </div>
+                    <div className={styles.profileMeta}>
+                      {voyageName} · {activeVoyage?.issue}
+                    </div>
+                  </div>
+                  <button className={styles.profileMoreBtn} aria-label="更多">
+                    ⋯
+                  </button>
+                </div>
+
+                <div className={styles.heroCardA}>
+                  <div className={styles.heroCardHeader}>
+                    <div>
+                      <div className={styles.heroCardTitle}>
+                        {voyageName} · {activeVoyage?.issue}
+                      </div>
+                      <div className={styles.heroCardSub}>{activeVoyage?.range}</div>
+                    </div>
+                    <div className={styles.heroCardRight}>
+                      <span className={styles.heroStatusTag}>进行中</span>
+                      <button
+                        className={styles.heroSwitchBtn}
+                        onClick={() => setVoyageSwitchOpen(true)}
+                      >
+                        切换 ›
+                      </button>
+                    </div>
+                  </div>
+                  <div className={styles.heroProgress}>
+                    <div className={styles.heroProgressText}>已进行 12/30 天</div>
+                    <div className={styles.heroProgressBar}>
+                      <span style={{ width: '40%' }} />
+                    </div>
                   </div>
                 </div>
-                <button
-                  className={styles.userAiFloat}
-                  onClick={openAiDrawer}
-                  aria-label="打开 AI 航海助手"
-                >
-                  <span className={styles.userAiHalo} />
-                  <img src="/ai-robot.svg" alt="AI 航海助手" />
-                </button>
-                <div className={styles.voyageInfo}>
-                  <div className={styles.voyageTitle}>{activeVoyage?.name}</div>
-                  <div className={styles.voyageMeta}>
-                    {activeVoyage?.issue} · {activeVoyage?.range}
+
+                <div className={styles.statsCardA}>
+                  <div className={styles.statsItemA}>
+                    <span className={styles.statsIconA}>
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="1.4" />
+                        <path
+                          d="M10.2 9.6c.2-1.1 1.2-1.9 2.4-1.9 1.5 0 2.6 1 2.6 2.3 0 1-.6 1.7-1.6 2.1-.6.3-.9.7-.9 1.3"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.4"
+                          strokeLinecap="round"
+                        />
+                        <circle cx="12" cy="16.6" r="0.9" fill="currentColor" />
+                      </svg>
+                    </span>
+                    <div className={styles.statsValueA}>{currentUser.stats.questions}</div>
+                    <div className={styles.statsLabelA}>提问</div>
+                  </div>
+                  <div className={styles.statsItemA}>
+                    <span className={styles.statsIconA}>
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          d="M7.5 17.5 4 20V6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v6A2.5 2.5 0 0 1 17.5 15h-8"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.4"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                    <div className={styles.statsValueA}>{currentUser.stats.answers}</div>
+                    <div className={styles.statsLabelA}>回答</div>
+                  </div>
+                  <div className={styles.statsItemA}>
+                    <span className={styles.statsIconA}>
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                          d="M5.5 12.5 10 17l8.5-9"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                    <div className={styles.statsValueA}>{currentUser.stats.adopted}</div>
+                    <div className={styles.statsLabelA}>被采纳</div>
                   </div>
                 </div>
-                <div className={styles.voyageSelectRow}>
-                  <label>切换航海</label>
-                  <select
-                    className={styles.voyageSelect}
-                    value={activeVoyageId}
-                    onChange={(e) => setActiveVoyageId(e.target.value as 'v1' | 'v2')}
-                  >
-                    {voyageOptions.map((voyage) => (
-                      <option key={voyage.id} value={voyage.id}>
-                        {voyage.name} {voyage.issue}
-                      </option>
-                    ))}
-                  </select>
+
+                <div className={styles.quickCardA}>
+                  <button className={styles.quickRow}>
+                    <span className={styles.quickLeft}>
+                      <span className={styles.quickIcon}>●</span>我的提问
+                    </span>
+                    <span className={styles.quickRight}>
+                      <span className={styles.quickBadge}>{currentUser.stats.questions}</span>
+                      <span className={styles.quickChevron}>›</span>
+                    </span>
+                  </button>
+                  <button className={styles.quickRow}>
+                    <span className={styles.quickLeft}>
+                      <span className={styles.quickIcon}>●</span>我的回答
+                    </span>
+                    <span className={styles.quickRight}>
+                      <span className={styles.quickBadge}>{currentUser.stats.answers}</span>
+                      <span className={styles.quickChevron}>›</span>
+                    </span>
+                  </button>
+                  <button className={styles.quickRow}>
+                    <span className={styles.quickLeft}>
+                      <span className={styles.quickIcon}>●</span>我的收藏
+                    </span>
+                    <span className={styles.quickRight}>
+                      <span className={styles.quickChevron}>›</span>
+                    </span>
+                  </button>
                 </div>
-                <div className={styles.userStats}>
-                  <div>
-                    <span>提问</span>
-                    <strong>{currentUser.stats.questions}</strong>
+
+                {showReminder && currentUser.unresolved > 0 && (
+                  <div className={styles.reminderCardA}>
+                    <div className={styles.reminderText}>
+                      你还有 <strong>{currentUser.unresolved}</strong> 个问题待解决
+                    </div>
+                    <div className={styles.reminderActions}>
+                      <button className={styles.reminderBtn}>去解决</button>
+                      <button
+                        className={styles.reminderClose}
+                        onClick={() => setShowReminder(false)}
+                        aria-label="隐藏提醒"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <span>回答</span>
-                    <strong>{currentUser.stats.answers}</strong>
-                  </div>
-                  <div>
-                    <span>被采纳</span>
-                    <strong>{currentUser.stats.adopted}</strong>
-                  </div>
-                </div>
-                <div className={styles.userQuickLinks}>
-                  <button>我的提问</button>
-                  <button>我的回答</button>
-                  <button>我的收藏</button>
-                </div>
-                <div className={styles.unresolvedAlert}>
-                  我还有 <strong>{currentUser.unresolved}</strong> 个问题未解决
-                </div>
-              </div>
-              <div className={styles.sidebarCard}>
-                <div className={styles.sidebarTitle}>本期航海教练</div>
-                <div className={styles.coachCard}>
-                  <div className={styles.coachRow}>
-                    <div className={styles.coachAvatar}>{coachInfo.name.slice(0, 1)}</div>
-                    <div className={styles.coachName}>{coachInfo.name}</div>
-                  </div>
-                  <div className={styles.coachIntro}>{coachInfo.intro}</div>
-                </div>
+                )}
               </div>
 
               <div className={styles.sidebarCard} id="community-leaderboard">
@@ -1109,64 +1968,152 @@ export default function HomePage() {
                 <button className={styles.rankMore}>查看更多</button>
               </div>
             </aside>
+
+            {voyageSwitchOpen && (
+              <div className={styles.voyageSheetMask} onClick={() => setVoyageSwitchOpen(false)}>
+                <div
+                  className={styles.voyageSheet}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <div className={styles.voyageSheetHeader}>切换航海</div>
+                  <div className={styles.voyageSheetList}>
+                    {voyageOptions.map((voyage) => {
+                      const isActive = voyage.id === activeVoyageId;
+                      return (
+                        <button
+                          key={voyage.id}
+                          className={`${styles.voyageSheetItem} ${
+                            isActive ? styles.voyageSheetItemActive : ''
+                          }`}
+                          onClick={() => {
+                            setActiveVoyageId(voyage.id as 'v1' | 'v2');
+                            setVoyageSwitchOpen(false);
+                          }}
+                        >
+                          <span>{voyage.name.replace(/\\s+/g, '')} · {voyage.issue}</span>
+                          {isActive && <span className={styles.voyageSheetCheck}>当前</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {showForm && (
-            <div className={styles.modalBackdrop} onClick={() => setShowForm(false)}>
-              <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
-                <QuestionForm
-                  onSubmit={handleSubmitPost}
-                  onCancel={() => setShowForm(false)}
-                  initialData={formPrefill || undefined}
-                />
-              </div>
-            </div>
-          )}
-
-          {showAiGuide && (
-            <div className={styles.modalBackdrop} onClick={() => setShowAiGuide(false)}>
-              <div className={styles.guideCard} onClick={(e) => e.stopPropagation()}>
-                <div className={styles.guideTitle}>建议先问 AI 航海助手</div>
-                <div className={styles.guideText}>
-                  推荐先问 AI，80% 常见问题可即时解决；如未解决再向教练与伙伴求助。
+          {showRobot && (
+            <div
+              className={styles.aiFloatingWrapper}
+              style={aiWrapperStyle}
+              data-visible={robotPos ? 'true' : 'false'}
+            >
+              <button
+                type="button"
+                className={`${styles.aiFloating} ${
+                  isRobotExpanded ? styles.aiFloatingExpanded : styles.aiFloatingCollapsed
+                } ${playRobotIntro ? styles.aiFloatingIntro : ''}`}
+                onClick={() => {
+                  if (dragMovedRef.current) {
+                    dragMovedRef.current = false;
+                    return;
+                  }
+                  openAiModal();
+                }}
+                ref={robotRef}
+                onMouseEnter={() => {
+                  if (hoverCollapseTimer.current) {
+                    window.clearTimeout(hoverCollapseTimer.current);
+                  }
+                  setIsRobotHover(true);
+                }}
+                onMouseLeave={() => {
+                  if (hoverCollapseTimer.current) {
+                    window.clearTimeout(hoverCollapseTimer.current);
+                  }
+                  hoverCollapseTimer.current = window.setTimeout(() => {
+                    setIsRobotHover(false);
+                  }, 800);
+                }}
+                onPointerDown={(event) => {
+                  if (!robotRef.current) return;
+                  event.preventDefault();
+                  dragMovedRef.current = false;
+                  const rect = robotRef.current.getBoundingClientRect();
+                  dragDataRef.current = {
+                    offsetX: event.clientX - rect.left,
+                    offsetY: event.clientY - rect.top,
+                    startX: event.clientX,
+                    startY: event.clientY,
+                  };
+                  setRobotDragged(true);
+                  robotRef.current.setPointerCapture(event.pointerId);
+                }}
+                onPointerMove={(event) => {
+                  if (!dragDataRef.current || !robotRef.current) return;
+                  const dx = event.clientX - dragDataRef.current.startX;
+                  const dy = event.clientY - dragDataRef.current.startY;
+                  if (Math.hypot(dx, dy) > 3) {
+                    dragMovedRef.current = true;
+                  }
+                  const rect = robotRef.current.getBoundingClientRect();
+                  const padding = 12;
+                  let x = event.clientX - dragDataRef.current.offsetX;
+                  let y = event.clientY - dragDataRef.current.offsetY;
+                  x = Math.max(padding, Math.min(window.innerWidth - rect.width - padding, x));
+                  y = Math.max(80, Math.min(window.innerHeight - rect.height - padding, y));
+                  setRobotPos({ x, y });
+                }}
+                onPointerUp={() => {
+                  dragDataRef.current = null;
+                  if (robotPosRef.current) {
+                    safeLocalSet('aiRobotPos', JSON.stringify(robotPosRef.current));
+                  }
+                }}
+                onPointerCancel={() => {
+                  dragDataRef.current = null;
+                }}
+                aria-label="AI 航海助手"
+              >
+                {showRobotTip && <div className={styles.aiFloatingTip}>先问我试试？</div>}
+                {isRobotExpanded && (
+                  <div className={styles.aiFloatingBubble}>我在～先问我试试！</div>
+                )}
+                <div className={styles.aiFloatingAvatarWrap}>
+                  <img
+                    className={styles.aiFloatingAvatar}
+                    src="/ai-robot.png"
+                    alt="AI 航海助手"
+                  />
+                  <span
+                    className={`${styles.aiStatusDot} ${styles[`aiStatus${aiStatus}`]}`}
+                    title={aiStatusLabel}
+                    aria-label={aiStatusLabel}
+                  />
                 </div>
-                <div className={styles.guideActions}>
-                  <Button variant="primary" onClick={handleAiGuideAskAi}>
-                    先问 AI
-                  </Button>
-                  <Button variant="outline" onClick={handleConfirmAskHuman}>
-                    继续求助
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {aiOpen && (
-            <div className={styles.aiDrawerBackdrop} onClick={closeAiDrawer}>
-              <div className={styles.aiDrawer} onClick={(e) => e.stopPropagation()}>
-                <div className={styles.aiHeader}>
-                  <div>
-                    <div className={styles.aiTitle}>AI 航海助手</div>
-                    <div className={styles.aiSubtitle}>先问 AI，快速定位问题方向</div>
+                <div className={styles.aiFloatingText} aria-hidden={!isRobotExpanded}>
+                  <div className={styles.aiFloatingTitle}>AI 航海助手</div>
+                  <div className={styles.aiFloatingDesc}>
+                    我可以先帮你解决大多数常见问题
                   </div>
-                  <button className={styles.aiClose} onClick={closeAiDrawer}>
-                    ✕
-                  </button>
                 </div>
+              </button>
+            </div>
+          )}
 
-                <div className={styles.aiChipRow}>
-                  {aiQuickChips.map((chip) => (
-                    <button key={chip} onClick={() => handleAiChipClick(chip)}>
-                      {chip}
-                    </button>
-                  ))}
+          {aiModalOpen && (
+            <div className={styles.modalBackdrop} onClick={closeAiModal}>
+              <div className={styles.aiModal} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.aiModalHeader}>
+                  <img className={styles.aiModalAvatar} src="/ai-robot.png" alt="AI 航海助手" />
+                  <div>
+                    <div className={styles.aiModalTitle}>AI 航海助手</div>
+                    <div className={styles.aiModalDesc}>直接描述你的问题，我会先给你解决方案</div>
+                  </div>
                 </div>
-
-                <div className={styles.aiBody}>
+                <div className={styles.aiModalBody}>
                   {aiMessages.length === 0 && (
                     <div className={styles.aiEmpty}>
-                      可以直接描述你的问题，AI 会先给出排查方向与参考方案。
+                      直接描述你的问题，AI 会先给出排查方向与参考方案。
                     </div>
                   )}
                   {aiMessages.map((msg, index) => (
@@ -1178,25 +2125,44 @@ export default function HomePage() {
                     </div>
                   ))}
                 </div>
-
                 <div className={styles.aiInputRow}>
                   <input
+                    ref={aiInputRef}
                     value={aiInput}
                     onChange={(e) => setAiInput(e.target.value)}
-                    placeholder="输入你的问题，AI 先帮你排查"
+                    placeholder="直接向 AI 提问，立即获得解答"
                   />
                   <button onClick={handleSendAi}>发送</button>
                 </div>
-
-                <div className={styles.aiFooter}>
-                  <div className={styles.aiFooterHint}>没解决？</div>
-                  <button className={styles.aiToHuman} onClick={handleAiToHuman}>
-                    一键转人工求助 →
-                  </button>
-                </div>
+                <button className={styles.aiModalHint} onClick={() => aiInputRef.current?.focus()}>
+                  💡 推荐先问 AI，80% 常见问题可即时解决；未解决再向教练提问
+                </button>
               </div>
             </div>
           )}
+
+          <AskCoachModal
+            open={coachModalOpen}
+            coach={selectedCoach}
+            prefill={coachPrefill}
+            onClose={closeCoachModal}
+            onSubmitted={handleSubmitCoachQuestion}
+            aiMessages={aiMessages}
+            aiInputValue={aiInput}
+            onAiInput={setAiInput}
+            onSendAi={handleSendAi}
+            aiStatusLabel={aiStatusLabel}
+            onAttachAI={(summary, history) => {
+              setAiSummary(summary);
+              setAiHistory(history);
+              setCoachPrefill((prev) => ({
+                ...prev,
+                hasAIContext: Boolean(summary || history),
+                aiSummary: summary,
+                aiHistory: history,
+              }));
+            }}
+          />
 
         </div>
       )}

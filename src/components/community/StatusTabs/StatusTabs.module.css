@@ -3,13 +3,13 @@
   gap: 24px;
   padding: 0;
   background-color: transparent;
-  border-bottom: none;
+  border-bottom: 1px solid var(--color-border-light);
   position: static;
 }
 
 .tab {
   position: relative;
-  padding: 6px 0;
+  padding: 8px 0;
   font-size: 14px;
   font-weight: 500;
   color: var(--color-text-secondary);
@@ -26,19 +26,19 @@
   font-weight: 600;
 }
 
-.badge {
-  position: relative;
-  margin-left: 6px;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f87171;
-  color: white;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
+.tab.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
   border-radius: var(--radius-full);
-  animation: pulse 2s ease-in-out infinite;
+  background: var(--color-primary);
+}
+
+.count {
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
 }

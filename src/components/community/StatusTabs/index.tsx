@@ -29,8 +29,8 @@ export default function StatusTabs({ activeTab, onTabChange, counts }: StatusTab
           onClick={() => onTabChange(tab.key)}
         >
           {tab.label}
-          {tab.count !== undefined && tab.count > 0 && (
-            <span className={styles.badge}>{tab.count}</span>
+          {tab.count !== undefined && (
+            <span className={styles.count}>({tab.count})</span>
           )}
         </button>
       ))}

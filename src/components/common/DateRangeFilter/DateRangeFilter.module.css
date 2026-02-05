@@ -15,9 +15,9 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 5px 12px;
+  padding: 4px 10px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all var(--transition-fast);
   background-color: var(--color-surface);
@@ -25,7 +25,7 @@
 
 .dateDisplay:hover {
   border-color: var(--color-primary);
-  background-color: var(--color-surface-hover);
+  background-color: #f8fafc;
 }
 
 .dateText {

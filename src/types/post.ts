@@ -5,6 +5,8 @@ export interface Post {
   title: string;
   content: PostContent;
   attachments: Attachment[];
+  likes?: number;
+  favorites?: number;
   status: 'pending' | 'resolved';
   mentions: string[];
   replies: Reply[];
@@ -32,6 +34,7 @@ export interface Reply {
   authorId: string;
   author?: User;
   content: string;
+  attachments?: Attachment[];
   isAdopted: boolean;
   likes: number;
   subReplies: SubReply[];

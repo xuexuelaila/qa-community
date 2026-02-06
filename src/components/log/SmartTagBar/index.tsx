@@ -11,6 +11,7 @@ interface SmartTagBarProps {
   onTagClick: (tag: string) => void;
   onClearAll?: () => void;
   tagClickCounts?: Record<string, number>;
+  headerSlot?: React.ReactNode;
 }
 
 export default function SmartTagBar({
@@ -19,6 +20,7 @@ export default function SmartTagBar({
   onTagClick,
   onClearAll,
   tagClickCounts = {},
+  headerSlot,
 }: SmartTagBarProps) {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [showAllTags, setShowAllTags] = useState(false);
@@ -44,6 +46,7 @@ export default function SmartTagBar({
 
   return (
     <div className={styles.container}>
+      {headerSlot ? <div className={styles.headerRow}>{headerSlot}</div> : null}
       {/* 一级分类 */}
       <div className={styles.categoryBar}>
         <div className={styles.categoryScroll}>

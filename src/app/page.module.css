@@ -2,7 +2,47 @@
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: var(--spacing-6) var(--spacing-6) var(--spacing-8);
+  padding: var(--spacing-3) var(--spacing-6) var(--spacing-8);
+  --radius-8: 8px;
+  --radius-12: 12px;
+  --radius-16: 16px;
+  --radius-20: 20px;
+  --radius-pill: 999px;
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --shadow-xs: 0 6px 12px rgba(15, 23, 42, 0.08);
+  --shadow-sm: 0 10px 18px rgba(15, 23, 42, 0.1);
+  --shadow-md: 0 16px 30px rgba(15, 23, 42, 0.14);
+  --shadow-lg: 0 24px 44px rgba(15, 23, 42, 0.18);
+  --glass-bg: rgba(255, 255, 255, 0.68);
+  --glass-border: rgba(255, 255, 255, 0.55);
+  --glass-blur: 12px;
+  --glass-highlight: radial-gradient(circle at top left, rgba(255, 255, 255, 0.6), transparent 55%);
+  --motion-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --motion-120: 120ms;
+  --motion-180: 180ms;
+  --motion-240: 240ms;
+}
+
+.topTabsRow {
+  padding: 0 4px 8px;
+  margin: 8px 0 10px;
+  border-bottom: 1px solid #eef2f1;
+}
+
+.filterPanel {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 6px 16px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  margin-bottom: 10px;
+  border: none;
 }
 
 .heroContainer {
@@ -82,84 +122,335 @@
   color: var(--color-text-primary);
 }
 
-.coachFloatingGrid {
+.coachGlassScroller {
+  overflow: visible;
+}
+
+.coachGlassGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
+  gap: var(--space-24);
 }
 
-.coachFloatingCard {
-  background: #f3f5f6;
-  border-radius: 12px;
-  padding: 22px 20px;
-  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+.coachGlassCard {
+  position: relative;
+  border-radius: var(--radius-16);
+  padding: var(--space-20) var(--space-20) var(--space-16);
+  background: var(--glass-bg);
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(var(--glass-blur));
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 14px;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  gap: var(--space-12);
+  transition: transform var(--motion-180) var(--motion-ease),
+    box-shadow var(--motion-180) var(--motion-ease);
 }
 
-.coachFloatingCard:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.12);
+.coachGlassCard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-16);
+  background: var(--glass-highlight);
+  opacity: 0.6;
+  pointer-events: none;
 }
 
-.coachFloatingHeader {
+.coachGlassCard:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.coachGlassHeader {
+  position: relative;
   display: flex;
-  align-items: center;
   gap: 12px;
+  align-items: center;
 }
 
-.coachFloatingAvatar {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #14b8a6, #0f766e);
+.coachGlassAvatar {
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-20);
+  background: linear-gradient(135deg, #18b3a6, #0f766e);
   color: #ffffff;
+  font-size: 20px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+.coachGlassStatus {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  right: 6px;
+  top: 6px;
+}
+
+.coachGlassTitle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.coachGlassNameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.coachGlassName {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.coachGlassBadge {
+  font-size: 11px;
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-pill);
+  background: rgba(24, 179, 166, 0.12);
+  color: #18b3a6;
+  font-weight: 600;
+}
+
+.coachGlassMeta {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.coachGlassDesc {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.coachGlassCta {
+  align-self: flex-start;
+  border: 1px solid rgba(24, 179, 166, 0.6);
+  color: #18b3a6;
+  background: transparent;
+  border-radius: var(--radius-12);
+  padding: var(--space-8) var(--space-12);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--motion-180) var(--motion-ease),
+    color var(--motion-180) var(--motion-ease),
+    transform var(--motion-120) var(--motion-ease);
+}
+
+.coachGlassCta:hover {
+  background: rgba(24, 179, 166, 0.12);
+  transform: translateY(-1px);
+}
+
+@supports not (backdrop-filter: blur(12px)) {
+  .coachGlassCard {
+    background: rgba(255, 255, 255, 0.92);
+  }
+}
+
+@media (max-width: 1024px) {
+  .coachGlassGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .coachGlassScroller {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+  }
+
+  .coachGlassGrid {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(220px, 1fr);
+    grid-template-columns: none;
+    gap: 16px;
+  }
+
+  .coachGlassCard {
+    scroll-snap-align: start;
+  }
+}
+.coachFloatingGrid {
+  display: none;
+}
+
+.coachFloatingCard {
+  display: none;
+}
+
+.coachFloatingCard:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.coachFloatingHeader {
+  display: none;
+}
+
+.coachFloatingAvatar {
+  display: none;
 }
 
 .coachFloatingName {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-primary);
+  display: none;
 }
 
 .coachFloatingMeta {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
+  display: none;
 }
 
 .coachFloatingBubble {
-  background: #ffffff;
-  border-radius: 14px;
-  padding: 12px 14px;
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.06);
+  display: none;
 }
 
 .coachFloatingBtn {
-  margin-top: 6px;
-  border: 1px solid rgba(15, 118, 110, 0.4);
-  background: rgba(15, 118, 110, 0.06);
-  color: #0f766e;
-  border-radius: 10px;
-  padding: 6px 14px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
-  align-self: center;
+  display: none;
 }
 
 .coachFloatingBtn:hover {
-  background: rgba(15, 118, 110, 0.14);
-  border-color: rgba(15, 118, 110, 0.6);
+  background: none;
+  border-color: transparent;
+}
+
+.coachHeroGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.coachHeroCard {
+  position: relative;
+  border-radius: 28px;
+  overflow: hidden;
+  background: #f1f5f9;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.16);
+  aspect-ratio: 3 / 4;
+  min-height: 0;
+}
+
+.coachHeroVisual {
+  position: relative;
+  height: 60%;
+  background: #e5e7eb;
+}
+
+.coachHeroImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: saturate(1.1);
+}
+
+.coachHeroOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 14px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0) 40%, rgba(15, 23, 42, 0.45) 100%);
+}
+
+.coachHeroDots {
+  display: flex;
+  gap: 6px;
+}
+
+.coachHeroDots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.coachHeroGlass {
+  position: relative;
+  margin: -24px 12px 12px;
+  padding: 12px 12px 10px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.coachHeroName {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.coachHeroTag {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  color: #1f2937;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.coachHeroTags {
+  display: flex;
+  gap: 8px;
+}
+
+.coachHeroDesc {
+  font-size: 11px;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.coachHeroCta {
+  border: none;
+  background: #ffffff;
+  color: #111827;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.16);
+}
+
+@media (max-width: 1200px) {
+  .coachHeroGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .coachHeroGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .coachHeroGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .aiFloatingWrapper {
@@ -542,6 +833,13 @@
   gap: var(--spacing-4);
 }
 
+.contentSwitchRow {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 4px 0;
+}
+
 .communitySidebar {
   display: flex;
   flex-direction: column;
@@ -832,7 +1130,7 @@
   inset: 0;
   background: rgba(17, 24, 39, 0.4);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   z-index: 2100;
 }
@@ -840,10 +1138,9 @@
 .voyageSheet {
   width: min(420px, 92vw);
   background: #ffffff;
-  border-radius: 16px 16px 12px 12px;
+  border-radius: 16px;
   padding: 16px;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.2);
-  margin-bottom: 16px;
 }
 
 .voyageSheetHeader {
@@ -1026,9 +1323,9 @@
 
 
 .statusRow {
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid var(--color-border-light);
+  margin-top: 0;
+  padding: 6px 0;
+  border-top: none;
 }
 
 .controlBar {
@@ -1157,37 +1454,39 @@
 
 .rankItem {
   display: grid;
-  grid-template-columns: 20px 38px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: 28px 40px minmax(0, 1fr);
+  gap: 10px;
   align-items: center;
+  padding: 6px 4px;
+  border-radius: 10px;
+  transition: background 0.18s ease;
+}
+
+.rankItem:hover {
+  background: rgba(148, 163, 184, 0.12);
 }
 
 .rankIcon {
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  background: #e2e8f0;
-  color: #64748b;
-  font-weight: 700;
-  font-size: 11px;
+  background: #f1f5f9;
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.rank1 {
-  background: #fbbf24;
-  color: #ffffff;
+.rankIconPlain {
+  background: #f1f5f9;
+  color: #94a3b8;
 }
 
-.rank2 {
-  background: #e2e8f0;
-  color: #64748b;
-}
-
-.rank3 {
-  background: #f59e0b;
-  color: #ffffff;
+.rankIconMedal {
+  background: transparent;
+  font-size: 0;
 }
 
 .rankAvatar {
@@ -1203,6 +1502,18 @@
   font-size: 12px;
 }
 
+.rankMedal1 {
+  color: #f59e0b;
+}
+
+.rankMedal2 {
+  color: #94a3b8;
+}
+
+.rankMedal3 {
+  color: #d97706;
+}
+
 .rankInfo {
   display: flex;
   flex-direction: column;
@@ -1213,6 +1524,16 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text-primary);
+}
+
+.rankNameTop {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.rankMeta strong {
+  color: #334155;
+  font-weight: 700;
 }
 
 .rankMeta {
@@ -1227,6 +1548,7 @@
   font-size: 11px;
   margin-top: 6px;
   cursor: pointer;
+  align-self: center;
 }
 
 .activeList {
@@ -1840,6 +2162,7 @@
   background: #0f172a;
   border-radius: 16px;
   padding: 12px;
+  position: relative;
 }
 
 .previewBody img,
@@ -1848,6 +2171,24 @@
   height: auto;
   border-radius: 12px;
   display: block;
+}
+
+.previewClose {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(15, 23, 42, 0.75);
+  color: #ffffff;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.25);
 }
 
 .aiModeHeader {
@@ -2160,7 +2501,7 @@
 
   .coachGrid,
   .coachFloatingGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: none;
   }
 }
 
@@ -2204,7 +2545,7 @@
 
   .coachGrid,
   .coachFloatingGrid {
-    grid-template-columns: 1fr;
+    display: none;
   }
 
   .introActions {

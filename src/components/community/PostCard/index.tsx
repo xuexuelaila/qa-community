@@ -350,6 +350,13 @@ export default function PostCard({ post, onClick }: PostCardProps) {
         {previewAttachment && (
           <div className={styles.previewBackdrop} onClick={() => setPreviewAttachment(null)}>
             <div className={styles.previewBody} onClick={(event) => event.stopPropagation()}>
+              <button
+                className={styles.previewClose}
+                onClick={() => setPreviewAttachment(null)}
+                aria-label="关闭预览"
+              >
+                ✕
+              </button>
               {previewAttachment.type === 'video' ? (
                 <video src={previewAttachment.url} controls autoPlay />
               ) : (

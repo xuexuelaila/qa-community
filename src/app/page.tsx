@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import MainTabs from '@/components/common/MainTabs';
+import ContentModeSwitch from '@/components/common/ContentModeSwitch';
 import DateRangePicker from '@/components/common/DateRangePicker';
 import SmartTagBar from '@/components/log/SmartTagBar';
 import QAGrid from '@/components/log/QAGrid';
@@ -993,17 +993,24 @@ const AskCoachModal = ({
                 hasAIContext={Boolean(prefill.hasAIContext)}
               />
             </div>
-            {previewItem && (
-              <div className={styles.previewBackdrop} onClick={() => setPreviewItem(null)}>
-                <div className={styles.previewBody} onClick={(e) => e.stopPropagation()}>
-                  {previewItem.kind === 'image' ? (
-                    <img src={previewItem.previewUrl} alt={previewItem.file.name} />
-                  ) : (
-                    <video src={previewItem.previewUrl} controls />
-                  )}
+              {previewItem && (
+                <div className={styles.previewBackdrop} onClick={() => setPreviewItem(null)}>
+                  <div className={styles.previewBody} onClick={(e) => e.stopPropagation()}>
+                    <button
+                      className={styles.previewClose}
+                      onClick={() => setPreviewItem(null)}
+                      aria-label="关闭预览"
+                    >
+                      ✕
+                    </button>
+                    {previewItem.kind === 'image' ? (
+                      <img src={previewItem.previewUrl} alt={previewItem.file.name} />
+                    ) : (
+                      <video src={previewItem.previewUrl} controls />
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
             <AskCoachModalFooter
               onCancel={handleClose}
               onSubmit={handleSubmit}
@@ -1105,6 +1112,15 @@ export default function HomePage() {
   };
   // 主Tab状态
   const [activeMainTab, setActiveMainTab] = useState<'log' | 'community'>('log');
+  useEffect(() => {
+    const saved = safeLocalGet('contentMode');
+    if (saved === 'log' || saved === 'community') {
+      setActiveMainTab(saved);
+    }
+  }, []);
+  useEffect(() => {
+    safeLocalSet('contentMode', activeMainTab);
+  }, [activeMainTab]);
 
   // 航海日志状态
   const [logStartDate, setLogStartDate] = useState<Date | null>(null);
@@ -1637,24 +1653,32 @@ export default function HomePage() {
   const CoachFloatingCards = () => (
     <div className={styles.coachSection}>
       <div className={styles.coachSectionTitle}>本期航海教练</div>
-      <div className={styles.coachFloatingGrid}>
-        {coachShowcase.map((coach) => (
-          <div key={coach.id} className={styles.coachFloatingCard}>
-            <div className={styles.coachFloatingHeader}>
-              <div className={styles.coachFloatingAvatar}>{coach.name.slice(0, 1)}</div>
-              <div>
-                <div className={styles.coachFloatingName}>{coach.name}</div>
-                <div className={styles.coachFloatingMeta}>{coach.specialty}</div>
+      <div className={styles.coachGlassScroller}>
+        <div className={styles.coachGlassGrid}>
+          {coachShowcase.map((coach) => (
+            <div key={coach.id} className={styles.coachGlassCard}>
+              <div className={styles.coachGlassHeader}>
+                <div className={styles.coachGlassAvatar}>
+                  {coach.name.slice(0, 1)}
+                  <span className={styles.coachGlassStatus} />
+                </div>
+                <div className={styles.coachGlassTitle}>
+                  <div className={styles.coachGlassNameRow}>
+                    <span className={styles.coachGlassName}>{coach.name}</span>
+                    <span className={styles.coachGlassBadge}>教练</span>
+                  </div>
+                  <div className={styles.coachGlassMeta}>擅长：{coach.specialty}</div>
+                </div>
               </div>
+              <div className={styles.coachGlassDesc}>
+                擅长{coach.specialty}，可以帮你快速梳理关键思路。
+              </div>
+              <button className={styles.coachGlassCta} onClick={() => openCoachModal(coach)}>
+                向教练提问
+              </button>
             </div>
-            <div className={styles.coachFloatingBubble}>
-              擅长{coach.specialty}，可以帮你快速梳理关键思路。
-            </div>
-            <button className={styles.coachFloatingBtn} onClick={() => openCoachModal(coach)}>
-              向教练提问
-            </button>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -1662,8 +1686,6 @@ export default function HomePage() {
 
   return (
     <div>
-      <MainTabs activeTab={activeMainTab} onTabChange={setActiveMainTab} />
-
       {activeMainTab === 'log' ? (
         // 航海日志页面
         <div style={{ paddingTop: 'var(--spacing-6)' }}>
@@ -1674,6 +1696,9 @@ export default function HomePage() {
             onTagClick={handleTagClick}
             onClearAll={handleClearAllTags}
             tagClickCounts={tagClickCounts}
+            headerSlot={
+              <ContentModeSwitch value={activeMainTab} onChange={setActiveMainTab} />
+            }
           />
 
           {filteredQAs.length > 0 ? (
@@ -1708,43 +1733,48 @@ export default function HomePage() {
         <div className={styles.communityRoot}>
           <div className={styles.communityGrid}>
             <div className={styles.communityMain}>
+              <div className={styles.contentSwitchRow}>
+                <ContentModeSwitch value={activeMainTab} onChange={setActiveMainTab} />
+              </div>
               <section className={styles.heroContainer}>
                 <HeroSection />
                 <CoachFloatingCards />
               </section>
 
-              <div className={styles.statusRow}>
-                <div className={styles.controlBar}>
-                  <StatusTabs
-                    activeTab={communityTab}
-                    onTabChange={setCommunityTab}
-                    counts={postCounts}
-                  />
-                  <div className={styles.controlActions}>
-                    <div className={styles.toolbarControls}>
-                      <select
-                        className={styles.toolbarSelect}
-                        value={communityCoach}
-                        onChange={(e) => setCommunityCoach(e.target.value)}
-                      >
-                        <option value="all">全部教练</option>
-                        <option value="教练小夏">教练小夏</option>
-                        <option value="教练阿北">教练阿北</option>
-                        <option value="教练Mia">教练Mia</option>
-                      </select>
-                      <select
-                        className={styles.toolbarSelect}
-                        value={communitySort}
-                        onChange={(e) => setCommunitySort(e.target.value as 'latest' | 'hot')}
-                      >
-                        <option value="latest">最新发布</option>
-                        <option value="hot">最多互动</option>
-                      </select>
-                      <DateRangeFilter
-                        startDate={communityStartDate || undefined}
-                        endDate={communityEndDate || undefined}
-                        onRangeChange={handleCommunityDateRangeChange}
-                      />
+              <div className={styles.filterPanel}>
+                <div className={styles.statusRow}>
+                  <div className={styles.controlBar}>
+                    <StatusTabs
+                      activeTab={communityTab}
+                      onTabChange={setCommunityTab}
+                      counts={postCounts}
+                    />
+                    <div className={styles.controlActions}>
+                      <div className={styles.toolbarControls}>
+                        <select
+                          className={styles.toolbarSelect}
+                          value={communityCoach}
+                          onChange={(e) => setCommunityCoach(e.target.value)}
+                        >
+                          <option value="all">全部教练</option>
+                          <option value="教练小夏">教练小夏</option>
+                          <option value="教练阿北">教练阿北</option>
+                          <option value="教练Mia">教练Mia</option>
+                        </select>
+                        <select
+                          className={styles.toolbarSelect}
+                          value={communitySort}
+                          onChange={(e) => setCommunitySort(e.target.value as 'latest' | 'hot')}
+                        >
+                          <option value="latest">最新发布</option>
+                          <option value="hot">最多互动</option>
+                        </select>
+                        <DateRangeFilter
+                          startDate={communityStartDate || undefined}
+                          endDate={communityEndDate || undefined}
+                          onRangeChange={handleCommunityDateRangeChange}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1795,7 +1825,7 @@ export default function HomePage() {
                         className={styles.heroSwitchBtn}
                         onClick={() => setVoyageSwitchOpen(true)}
                       >
-                        切换 ›
+                        切换航海
                       </button>
                     </div>
                   </div>
@@ -1942,30 +1972,84 @@ export default function HomePage() {
 
                 <div className={styles.rankList}>
                   {(leaderboardTab === 'question' ? questionLeaders : coachLeaders).map(
-                    (leader, index) => (
-                      <div key={leader.id} className={styles.rankItem}>
-                        <span className={`${styles.rankIcon} ${styles[`rank${index + 1}`] || ''}`}>
-                          {index + 1}
-                        </span>
-                        <div className={styles.rankAvatar}>{leader.name.slice(0, 1)}</div>
-                        <div className={styles.rankInfo}>
-                          <div className={styles.rankName}>{leader.name}</div>
-                          <div className={styles.rankMeta}>
-                            {leaderboardTab === 'question'
-                              ? `提问 ${(leader as typeof questionLeaders[number]).questions} · 已解决 ${
-                                  (leader as typeof questionLeaders[number]).resolved
-                                } · 获赞 ${(leader as typeof questionLeaders[number]).likes}`
-                              : `回答 ${(leader as typeof coachLeaders[number]).answers} · 被采纳 ${
-                                  (leader as typeof coachLeaders[number]).adopted
-                                } · 获赞 ${(leader as typeof coachLeaders[number]).likes}`}
+                    (leader, index) => {
+                      const rank = index + 1;
+                      const isTop = rank <= 3;
+                      const medalClass = isTop ? styles[`rankMedal${rank}`] || '' : '';
+                      return (
+                        <div key={leader.id} className={styles.rankItem}>
+                          <span
+                            className={`${styles.rankIcon} ${
+                              isTop ? styles.rankIconMedal : styles.rankIconPlain
+                            } ${medalClass}`}
+                            title={isTop ? `Top${rank}` : undefined}
+                          >
+                            {isTop ? (
+                              <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path
+                                  d="M9 4h6l-1 4H10L9 4Z"
+                                  fill="currentColor"
+                                  opacity="0.35"
+                                />
+                                <circle
+                                  cx="12"
+                                  cy="13"
+                                  r="5"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.6"
+                                />
+                                <path
+                                  d="M10 18.5 9 21l3-1.6 3 1.6-1-2.5"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.6"
+                                  strokeLinejoin="round"
+                                  strokeLinecap="round"
+                                />
+                                <text
+                                  x="12"
+                                  y="14.5"
+                                  textAnchor="middle"
+                                  fontSize="8"
+                                  fontWeight="700"
+                                  fill="currentColor"
+                                >
+                                  {rank}
+                                </text>
+                              </svg>
+                            ) : (
+                              rank
+                            )}
+                          </span>
+                          <div className={styles.rankAvatar}>{leader.name.slice(0, 1)}</div>
+                          <div className={styles.rankInfo}>
+                            <div className={`${styles.rankName} ${isTop ? styles.rankNameTop : ''}`}>
+                              {leader.name}
+                            </div>
+                            <div className={styles.rankMeta}>
+                              {leaderboardTab === 'question' ? (
+                                <>
+                                  提问 {(leader as typeof questionLeaders[number]).questions} · 已解决{' '}
+                                  {(leader as typeof questionLeaders[number]).resolved} ·{' '}
+                                  <strong>获赞 {(leader as typeof questionLeaders[number]).likes}</strong>
+                                </>
+                              ) : (
+                                <>
+                                  回答 {(leader as typeof coachLeaders[number]).answers} · 被采纳{' '}
+                                  {(leader as typeof coachLeaders[number]).adopted} ·{' '}
+                                  <strong>获赞 {(leader as typeof coachLeaders[number]).likes}</strong>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )
+                      );
+                    }
                   )}
                 </div>
 
-                <button className={styles.rankMore}>查看更多</button>
+                <button className={styles.rankMore}>查看更多 ⌄</button>
               </div>
             </aside>
 

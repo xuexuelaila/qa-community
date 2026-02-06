@@ -8,6 +8,11 @@
   border: 1px solid #eef2f1;
 }
 
+.headerRow {
+  padding: 12px 18px 6px;
+  border-bottom: 1px solid #eef2f1;
+}
+
 /* 一级分类栏 */
 .categoryBar {
   padding: 16px 18px;

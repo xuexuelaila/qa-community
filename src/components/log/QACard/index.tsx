@@ -35,6 +35,27 @@ export default function QACard({ qa, onClick }: QACardProps) {
     onClick?.();
   };
 
+  const dedupeMarkdownLines = (text: string): string => {
+    const lines = text.split('\n');
+    const output: string[] = [];
+    let prevKey = '';
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        output.push(line);
+        prevKey = '';
+        continue;
+      }
+      const key = trimmed.replace(/^[-*\\d\\.]+\\s*/, '').toLowerCase();
+      if (key && key === prevKey) {
+        continue;
+      }
+      output.push(line);
+      prevKey = key;
+    }
+    return output.join('\n');
+  };
+
   // 提取链接和工具
   const extractLinks = (text: string): ExtractedLink[] => {
     const links: ExtractedLink[] = [];
@@ -68,7 +89,7 @@ export default function QACard({ qa, onClick }: QACardProps) {
 
   const safeAnswer = qa.answer ?? '';
   const safeQuestion = qa.question ?? '';
-  const sanitizedAnswer = stripEmojis(safeAnswer);
+  const sanitizedAnswer = dedupeMarkdownLines(stripEmojis(safeAnswer));
   const sanitizedQuestion = stripEmojis(safeQuestion);
   const links = extractLinks(sanitizedAnswer);
   const images = extractImages();

@@ -87,6 +87,17 @@ export default function QADetailModal({ qa, isOpen, onClose, onFeedback }: QADet
   const swipeRef = React.useRef<{ x: number; y: number } | null>(null);
   const uploadTimersRef = React.useRef<Record<string, number>>({});
 
+  React.useEffect(() => {
+    if (!lightbox.isOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeLightbox();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightbox.isOpen]);
+
   if (!isOpen) return null;
 
   const extractCoreConclusion = (text: string): string => {
@@ -99,6 +110,33 @@ export default function QADetailModal({ qa, isOpen, onClose, onFeedback }: QADet
   };
 
   const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  const dedupeMarkdownLines = (text: string): string => {
+    const lines = text.split('\n');
+    const output: string[] = [];
+    const seen = new Set<string>();
+    const normalize = (value: string) => {
+      const cleaned = value.replace(/^[-*\\d\\.]+\\s*/, '');
+      return cleaned.replace(/[^\\p{L}\\p{N}]+/gu, '').toLowerCase();
+    };
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        output.push(line);
+        continue;
+      }
+      const key = normalize(trimmed);
+      if (key.length > 3 && seen.has(key)) {
+        continue;
+      }
+      if (key.length > 3) {
+        seen.add(key);
+      }
+      output.push(line);
+    }
+    return output.join('\n');
+  };
 
   const emphasizeKeywords = (text: string): string => {
     const keywords = ['转化率', '流量池', '留存', '冷启动', '权重', '推荐', '复购', 'ROI'];
@@ -113,7 +151,7 @@ export default function QADetailModal({ qa, isOpen, onClose, onFeedback }: QADet
   const safeTags = qa.tags ?? [];
   const feedbackUseful = qa.feedback?.useful ?? 0;
   const feedbackUseless = qa.feedback?.useless ?? 0;
-  const sanitizedAnswer = stripEmojis(safeAnswer);
+  const sanitizedAnswer = dedupeMarkdownLines(stripEmojis(safeAnswer));
   const sanitizedQuestion = stripEmojis(safeQuestion);
   const coreConclusion = extractCoreConclusion(sanitizedAnswer);
   const richTextContent = emphasizeKeywords(sanitizedAnswer);

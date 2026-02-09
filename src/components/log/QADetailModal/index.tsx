@@ -1118,7 +1118,7 @@ export default function QADetailModal({ qa, isOpen, onClose, onFeedback }: QADet
             <div className={styles.titleBlock}>
               <h2 className={styles.title}>{sanitizedQuestion}</h2>
               <div className={styles.tags}>
-                <Tag variant="secondary" size="small" className={styles.tagPill}>
+                <Tag variant="secondary" className={styles.tagPill}>
                   {stripEmojis(categoryNames[qa.category])}
                 </Tag>
                 {safeTags.map((tag, index) => (

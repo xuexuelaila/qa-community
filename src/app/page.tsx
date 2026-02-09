@@ -14,9 +14,30 @@ import DateRangeFilter from '@/components/common/DateRangeFilter';
 import Button from '@/components/common/Button';
 import { QAKnowledge } from '@/types/qa';
 import { Post, CreatePostData } from '@/types/post';
+import localQAs from '@/data/qa-local.json';
 import styles from './page.module.css';
 
 const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+const normalizeQa = (qa: any): QAKnowledge | null => {
+  const question = String(qa.question || '').trim();
+  const answer = String(qa.answer || '').trim();
+  if (!question || !answer) return null;
+  return {
+    _id: qa._id || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    date: qa.date ? new Date(qa.date) : new Date(),
+    question,
+    answer,
+    category: qa.category || 'practical',
+    tags: Array.isArray(qa.tags) ? qa.tags : [],
+    steps: qa.steps,
+    alternatives: qa.alternatives,
+    originalChat: qa.originalChat,
+    feedback: qa.feedback || { useful: 0, useless: 0 },
+    createdAt: qa.createdAt ? new Date(qa.createdAt) : new Date(),
+    updatedAt: qa.updatedAt ? new Date(qa.updatedAt) : new Date(),
+  };
+};
 
 // Mock数据 - 航海日志
 const mockQAs: QAKnowledge[] = [
@@ -144,6 +165,12 @@ const mockQAs: QAKnowledge[] = [
     updatedAt: new Date(),
   },
 ];
+
+const LOCAL_QAS: QAKnowledge[] = (Array.isArray(localQAs) ? localQAs : [])
+  .map(normalizeQa)
+  .filter((item): item is QAKnowledge => Boolean(item));
+
+const FALLBACK_QAS: QAKnowledge[] = LOCAL_QAS.length > 0 ? LOCAL_QAS : mockQAs;
 
 // Mock数据 - 求助站
 const mockPosts: Post[] = [
@@ -1203,10 +1230,10 @@ export default function HomePage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
   const defaultTags = React.useMemo(
-    () => Array.from(new Set(mockQAs.flatMap((qa) => qa.tags))),
+    () => Array.from(new Set(FALLBACK_QAS.flatMap((qa) => qa.tags))),
     []
   );
-  const [extractedQAs, setExtractedQAs] = useState<QAKnowledge[]>(mockQAs); // 提取的真实数据
+  const [extractedQAs, setExtractedQAs] = useState<QAKnowledge[]>(FALLBACK_QAS); // 提取的真实数据
   const [selectedQA, setSelectedQA] = useState<QAKnowledge | null>(null); // 选中的QA用于显示详情
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false); // 详情弹窗状态
   const [allTags, setAllTags] = useState<string[]>(defaultTags); // 动态标签列表
@@ -1456,26 +1483,7 @@ export default function HomePage() {
 
   // 加载提取的知识库
   const loadExtractedQAs = async () => {
-    const normalizeQa = (qa: any): QAKnowledge | null => {
-      const question = String(qa.question || '').trim();
-      const answer = String(qa.answer || '').trim();
-      if (!question || !answer) return null;
-      return {
-        _id: qa._id || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        date: qa.date ? new Date(qa.date) : new Date(),
-        question,
-        answer,
-        category: qa.category || 'practical',
-        tags: Array.isArray(qa.tags) ? qa.tags : [],
-        steps: qa.steps,
-        alternatives: qa.alternatives,
-        originalChat: qa.originalChat,
-        feedback: qa.feedback || { useful: 0, useless: 0 },
-        createdAt: qa.createdAt ? new Date(qa.createdAt) : new Date(),
-        updatedAt: qa.updatedAt ? new Date(qa.updatedAt) : new Date(),
-      };
-    };
-
+    const localFallback = FALLBACK_QAS;
     const applyQAs = (list: QAKnowledge[]) => {
       setExtractedQAs(list);
       const tags = new Set<string>();
@@ -1500,17 +1508,17 @@ export default function HomePage() {
           const merged =
             normalized.length >= 6
               ? normalized
-              : [...normalized, ...mockQAs].slice(0, 12);
+              : [...normalized, ...localFallback].slice(0, 12);
           applyQAs(merged);
         } else {
-          applyQAs(mockQAs);
+          applyQAs(localFallback);
         }
       } else {
-        applyQAs(mockQAs);
+        applyQAs(localFallback);
       }
     } catch (error) {
       console.error('加载知识库失败:', error);
-      applyQAs(mockQAs);
+      applyQAs(localFallback);
     }
   };
 

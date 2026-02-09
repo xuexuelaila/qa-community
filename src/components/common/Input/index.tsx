@@ -1,14 +1,23 @@
 import React from 'react';
 import styles from './Input.module.css';
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement | HTMLTextAreaElement> {
+type InputBaseProps = {
   label?: string;
   error?: string;
   prefix?: React.ReactNode;
   suffix?: React.ReactNode;
-  multiline?: boolean;
   rows?: number;
-}
+};
+
+type InputProps =
+  | (InputBaseProps &
+      Omit<React.InputHTMLAttributes<HTMLInputElement>, 'prefix'> & {
+        multiline?: false;
+      })
+  | (InputBaseProps &
+      Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'prefix'> & {
+        multiline: true;
+      });
 
 export default function Input({
   label,

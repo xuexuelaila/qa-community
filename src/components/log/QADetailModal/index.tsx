@@ -35,6 +35,9 @@ export default function QADetailModal({ qa, isOpen, onClose, onFeedback }: QADet
       images: string[];
       createdAt: Date;
       status?: 'sending' | 'error';
+      likes?: number;
+      likedUserIds?: string[];
+      replies?: QAReply[];
     }[]
   >([]);
   const [commentLikeState, setCommentLikeState] = React.useState<Record<string, { count: number; liked: boolean }>>({});

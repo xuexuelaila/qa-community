@@ -1490,7 +1490,7 @@ export default function HomePage() {
       if (result.success && Array.isArray(result.data) && result.data.length > 0) {
         const normalized = result.data
           .map(normalizeQa)
-          .filter((item): item is QAKnowledge => Boolean(item));
+          .filter((item: QAKnowledge | null): item is QAKnowledge => Boolean(item));
         if (normalized.length > 0) {
           // 若解析结果偏少，补充部分 mock 以保证展示
           const merged =

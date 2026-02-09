@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { QAComment, QAKnowledge, QAReply } from '@/types/qa';
+import { QAComment, QAKnowledge, QAReply, QAUser } from '@/types/qa';
 import { stripEmojis } from '@/lib/text';
 import Tag from '@/components/common/Tag';
 import styles from './QADetailModal.module.css';
@@ -23,23 +23,23 @@ const categoryNames = {
   logic: '底层逻辑',
 };
 
+type LocalComment = {
+  id: string;
+  author: QAUser;
+  content: string;
+  images: string[];
+  createdAt: Date;
+  status?: 'sending' | 'error';
+  likes?: number;
+  likedUserIds?: string[];
+  replies?: QAReply[];
+};
+
 export default function QADetailModal({ qa, isOpen, onClose, onFeedback }: QADetailModalProps) {
   const [userFeedback, setUserFeedback] = React.useState<'useful' | 'useless' | null>(null);
   const [commentInput, setCommentInput] = React.useState('');
   const [remoteComments, setRemoteComments] = React.useState<QAComment[]>(qa.comments || []);
-  const [localComments, setLocalComments] = React.useState<
-    {
-      id: string;
-      author: { id: string; name: string; avatar?: string; role?: 'captain' | 'assistant' | 'member' };
-      content: string;
-      images: string[];
-      createdAt: Date;
-      status?: 'sending' | 'error';
-      likes?: number;
-      likedUserIds?: string[];
-      replies?: QAReply[];
-    }[]
-  >([]);
+  const [localComments, setLocalComments] = React.useState<LocalComment[]>([]);
   const [commentLikeState, setCommentLikeState] = React.useState<Record<string, { count: number; liked: boolean }>>({});
   const [replyLikeState, setReplyLikeState] = React.useState<Record<string, { count: number; liked: boolean }>>({});
   const [replyInputs, setReplyInputs] = React.useState<Record<string, string>>({});
@@ -308,7 +308,7 @@ export default function QADetailModal({ qa, isOpen, onClose, onFeedback }: QADet
     }
     const images = pendingImages.filter((img) => img.status === 'done').map((img) => img.url);
     const tempId = `local-${Date.now()}`;
-    const optimistic = {
+    const optimistic: LocalComment = {
       id: tempId,
       author: { id: 'local', name: '船友', role: 'member' },
       content: value,

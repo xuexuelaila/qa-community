@@ -1832,9 +1832,62 @@
 .myDetailBody {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
   font-size: 13px;
   color: var(--color-text-secondary);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.myDetailSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.myDetailSection:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.myDetailTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.myDetailTitleText {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.myDetailStatus {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.myDetailStatusPending {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
+.myDetailStatusResolved {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.myDetailMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
 }
 
 .myDetailLabel {
@@ -1845,6 +1898,65 @@
 .myDetailValue {
   font-size: 14px;
   color: var(--color-text-primary);
+}
+
+.myDetailContent {
+  font-size: 13px;
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.myDetailAttachments {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.myDetailAttachment img,
+.myDetailAttachment video {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  display: block;
+  background: #f1f5f9;
+}
+
+.myDetailAnswerList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.myDetailAnswerItem {
+  border: 1px solid #eef2f7;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #ffffff;
+}
+
+.myDetailAnswerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.myDetailAnswerBadge {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+  border-radius: 999px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.myDetailEmpty {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  text-align: center;
+  padding: 10px 0;
 }
 
 .myDetailActions {

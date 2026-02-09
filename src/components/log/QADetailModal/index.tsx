@@ -158,7 +158,7 @@ export default function QADetailModal({ qa, isOpen, onClose, onFeedback }: QADet
   const isCommentEmpty = commentInput.trim().length === 0 && pendingImages.length === 0;
   const hasUploadingImages = pendingImages.some((img) => img.status === 'uploading');
   const hasErrorImages = pendingImages.some((img) => img.status === 'error');
-  const apiOrigin = 'http://localhost:3001';
+  const apiOrigin = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
   const apiBase = `${apiOrigin}/api/qa`;
   const uploadEndpoint = `${apiOrigin}/api/upload`;
 

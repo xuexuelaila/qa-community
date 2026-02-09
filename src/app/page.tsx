@@ -16,6 +16,8 @@ import { QAKnowledge } from '@/types/qa';
 import { Post, CreatePostData } from '@/types/post';
 import styles from './page.module.css';
 
+const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
 // Mock数据 - 航海日志
 const mockQAs: QAKnowledge[] = [
   {
@@ -1419,7 +1421,7 @@ export default function HomePage() {
   // 加载提取的知识库
   const loadExtractedQAs = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/qa/extracted');
+      const response = await fetch(`${API_ORIGIN}/api/qa/extracted`);
       const result = await response.json();
       if (result.success) {
         setExtractedQAs(result.data);
@@ -1791,6 +1793,7 @@ export default function HomePage() {
         time: new Date(Date.now() - 2 * 24 * 3600 * 1000),
         origin: 'community',
         source: 'coach',
+        postId: posts[0]?._id,
       },
       {
         id: 'fav-2',
@@ -1908,12 +1911,25 @@ export default function HomePage() {
         )}
         {item.tab === 'favorite' && (
           <button className={styles.myItemActionBtn} onClick={() => setMyDetailItem(item)}>
-            打开
+            查看原帖
           </button>
         )}
       </div>
     </div>
   );
+
+  const selectedPost = myDetailItem?.postId
+    ? posts.find((post) => post._id === myDetailItem.postId)
+    : undefined;
+  const selectedMyQA = React.useMemo(() => {
+    if (!myDetailItem) return undefined;
+    if (myDetailItem.origin !== 'faq') return undefined;
+    const byTitle =
+      extractedQAs.find((qa) => qa.question.includes(myDetailItem.title)) ||
+      extractedQAs.find((qa) => myDetailItem.title.includes(qa.question));
+    if (byTitle) return byTitle;
+    return mockQAs.find((qa) => myDetailItem.title.includes(qa.question));
+  }, [myDetailItem, extractedQAs]);
 
 
   return (
@@ -2684,21 +2700,94 @@ export default function HomePage() {
                 onClick={(event) => event.stopPropagation()}
               >
                 <div className={styles.myDetailHeader}>
-                  <div className={styles.myDetailTitle}>详情预览</div>
+                  <div className={styles.myDetailTitle}>帖子详情</div>
                   <button onClick={() => setMyDetailItem(null)}>✕</button>
                 </div>
                 <div className={styles.myDetailBody}>
-                  <div className={styles.myDetailLabel}>标题</div>
-                  <div className={styles.myDetailValue}>{myDetailItem.title}</div>
-                  <div className={styles.myDetailLabel}>分类</div>
-                  <div className={styles.myDetailValue}>{myDetailItem.category}</div>
-                  <div className={styles.myDetailLabel}>航海期数</div>
-                  <div className={styles.myDetailValue}>{myDetailItem.voyage}</div>
-                  {myDetailItem.status && (
+                  <div className={styles.myDetailSection}>
+                    <div className={styles.myDetailTitleRow}>
+                      <div className={styles.myDetailTitleText}>{myDetailItem.title}</div>
+                      {myDetailItem.status && (
+                        <span
+                          className={`${styles.myDetailStatus} ${
+                            myDetailItem.status === 'pending'
+                              ? styles.myDetailStatusPending
+                              : styles.myDetailStatusResolved
+                          }`}
+                        >
+                          {myDetailItem.status === 'pending' ? '待解决' : '已解决'}
+                        </span>
+                      )}
+                    </div>
+                    <div className={styles.myDetailMeta}>
+                      <span>{myDetailItem.category}</span>
+                      <span>{myDetailItem.voyage}</span>
+                      <span>{format(myDetailItem.time, 'yyyy-MM-dd HH:mm')}</span>
+                    </div>
+                  </div>
+
+                  {selectedPost && (
                     <>
-                      <div className={styles.myDetailLabel}>状态</div>
-                      <div className={styles.myDetailValue}>
-                        {myDetailItem.status === 'pending' ? '待解决' : '已解决'}
+                      <div className={styles.myDetailSection}>
+                        <div className={styles.myDetailLabel}>问题描述</div>
+                        <div className={styles.myDetailContent}>{selectedPost.content.problem}</div>
+                        {selectedPost.content.attempts && (
+                          <>
+                            <div className={styles.myDetailLabel}>补充信息</div>
+                            <div className={styles.myDetailContent}>
+                              {selectedPost.content.attempts}
+                            </div>
+                          </>
+                        )}
+                        {selectedPost.attachments && selectedPost.attachments.length > 0 && (
+                          <div className={styles.myDetailAttachments}>
+                            {selectedPost.attachments.map((attachment, index) => (
+                              <div key={`${attachment.url}-${index}`} className={styles.myDetailAttachment}>
+                                {attachment.type === 'video' ? (
+                                  <video src={attachment.url} controls />
+                                ) : (
+                                  <img src={attachment.url} alt="附件预览" />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className={styles.myDetailSection}>
+                        <div className={styles.myDetailLabel}>
+                          相关回答（{selectedPost.replies?.length || 0}）
+                        </div>
+                        <div className={styles.myDetailAnswerList}>
+                          {(selectedPost.replies || []).length > 0 ? (
+                            selectedPost.replies!.map((reply) => (
+                              <div key={reply._id} className={styles.myDetailAnswerItem}>
+                                <div className={styles.myDetailAnswerHeader}>
+                                  <span>{reply.author?.nickname || '匿名用户'}</span>
+                                  {reply.isAdopted && (
+                                    <span className={styles.myDetailAnswerBadge}>已采纳</span>
+                                  )}
+                                </div>
+                                <div className={styles.myDetailContent}>{reply.content}</div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className={styles.myDetailEmpty}>暂无回答</div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {selectedMyQA && (
+                    <>
+                      <div className={styles.myDetailSection}>
+                        <div className={styles.myDetailLabel}>问题</div>
+                        <div className={styles.myDetailContent}>{selectedMyQA.question}</div>
+                      </div>
+                      <div className={styles.myDetailSection}>
+                        <div className={styles.myDetailLabel}>答案</div>
+                        <div className={styles.myDetailContent}>{selectedMyQA.answer}</div>
                       </div>
                     </>
                   )}

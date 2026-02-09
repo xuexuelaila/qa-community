@@ -1202,10 +1202,14 @@ export default function HomePage() {
   const [logEndDate, setLogEndDate] = useState<Date | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [extractedQAs, setExtractedQAs] = useState<QAKnowledge[]>([]); // 提取的真实数据
+  const defaultTags = React.useMemo(
+    () => Array.from(new Set(mockQAs.flatMap((qa) => qa.tags))),
+    []
+  );
+  const [extractedQAs, setExtractedQAs] = useState<QAKnowledge[]>(mockQAs); // 提取的真实数据
   const [selectedQA, setSelectedQA] = useState<QAKnowledge | null>(null); // 选中的QA用于显示详情
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false); // 详情弹窗状态
-  const [allTags, setAllTags] = useState<string[]>([]); // 动态标签列表
+  const [allTags, setAllTags] = useState<string[]>(defaultTags); // 动态标签列表
   const [tagClickCounts, setTagClickCounts] = useState<Record<string, number>>({}); // 标签点击统计
 
   // 求助站状态

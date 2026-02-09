@@ -275,7 +275,37 @@ const voyageOptions = [
   },
 ];
 
-const voyageData = {
+type QuestionLeader = {
+  id: string;
+  name: string;
+  questions: number;
+  resolved: number;
+  likes: number;
+};
+
+type CoachLeader = {
+  id: string;
+  name: string;
+  answers: number;
+  adopted: number;
+  likes: number;
+};
+
+type VoyageUser = {
+  name: string;
+  role: string;
+  stats: { questions: number; answers: number; adopted: number };
+  unresolved: number;
+};
+
+type VoyageData = {
+  posts: Post[];
+  questionLeaders: QuestionLeader[];
+  coachLeaders: CoachLeader[];
+  user: VoyageUser;
+};
+
+const voyageData: Record<'v1' | 'v2', VoyageData> = {
   v1: {
     posts: mockPosts,
     questionLeaders: [
@@ -322,7 +352,7 @@ const voyageData = {
       unresolved: 2,
     },
   },
-} as const;
+};
 
 const leaderboardRanges = [
   { key: '7d', label: '近7天' },
@@ -1182,9 +1212,11 @@ export default function HomePage() {
   const [communityTab, setCommunityTab] = useState<'all' | 'pending' | 'resolved'>('all');
   const [activeVoyageId, setActiveVoyageId] = useState<'v1' | 'v2'>('v1');
   const [posts, setPosts] = useState<Post[]>(mockPosts);
-  const [questionLeaders, setQuestionLeaders] = useState(voyageData.v1.questionLeaders);
-  const [coachLeaders, setCoachLeaders] = useState(voyageData.v1.coachLeaders);
-  const [currentUser, setCurrentUser] = useState(voyageData.v1.user);
+  const [questionLeaders, setQuestionLeaders] = useState<QuestionLeader[]>(
+    voyageData.v1.questionLeaders
+  );
+  const [coachLeaders, setCoachLeaders] = useState<CoachLeader[]>(voyageData.v1.coachLeaders);
+  const [currentUser, setCurrentUser] = useState<VoyageUser>(voyageData.v1.user);
   const [communityStartDate, setCommunityStartDate] = useState<Date | null>(null);
   const [communityEndDate, setCommunityEndDate] = useState<Date | null>(null);
   const [communitySearch, setCommunitySearch] = useState('');

@@ -218,8 +218,10 @@ export default function QADetailModal({ qa, isOpen, onClose, onFeedback }: QADet
       const next = { ...prev };
       combinedComments.forEach((comment) => {
         if (!next[comment.id]) {
+          const likeCount =
+            'likes' in comment && typeof comment.likes === 'number' ? comment.likes : 0;
           next[comment.id] = {
-            count: comment.likes ?? 0,
+            count: likeCount,
             liked: false,
           };
         }
@@ -1434,7 +1436,11 @@ export default function QADetailModal({ qa, isOpen, onClose, onFeedback }: QADet
                   const name = stripEmojis(comment.author?.name || '船友') || '船友';
                   const initials = name.slice(0, 2);
                   const commentDate = formatCommentDate(comment.createdAt);
-                  const likeState = commentLikeState[comment.id] || { count: comment.likes ?? 0, liked: false };
+                  const likeState = commentLikeState[comment.id] || {
+                    count:
+                      'likes' in comment && typeof comment.likes === 'number' ? comment.likes : 0,
+                    liked: false,
+                  };
                   const replies = comment.replies || [];
                   const isLocal = (comment as { isLocal?: boolean }).isLocal;
                   const status = (comment as { status?: 'sending' | 'error' }).status;

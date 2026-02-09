@@ -67,6 +67,17 @@ export default function PostCard({ post, onClick }: PostCardProps) {
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [commentOpen, setCommentOpen] = useState<Record<string, boolean>>({});
 
+  useEffect(() => {
+    if (!previewAttachment) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setPreviewAttachment(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewAttachment]);
+
   const sanitizedTitle = stripEmojis(post.title);
   const sanitizedProblem = stripEmojis(post.content.problem);
   const sanitizedNickname = stripEmojis(author.nickname);
@@ -348,7 +359,12 @@ export default function PostCard({ post, onClick }: PostCardProps) {
           </div>
         )}
         {previewAttachment && (
-          <div className={styles.previewBackdrop} onClick={() => setPreviewAttachment(null)}>
+          <div
+            className={styles.previewBackdrop}
+            onClick={() => setPreviewAttachment(null)}
+            role="dialog"
+            aria-modal="true"
+          >
             <div className={styles.previewBody} onClick={(event) => event.stopPropagation()}>
               <button
                 className={styles.previewClose}

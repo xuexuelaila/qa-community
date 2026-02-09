@@ -1,6 +1,6 @@
 .communityRoot {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1760px;
   margin: 0 auto;
   padding: var(--spacing-3) var(--spacing-6) var(--spacing-8);
   --radius-8: 8px;
@@ -1462,6 +1462,14 @@
   transition: background 0.18s ease;
 }
 
+.rankItemTop {
+  padding: 8px 6px;
+}
+
+.rankItemTop1 {
+  background: rgba(15, 118, 110, 0.08);
+}
+
 .rankItem:hover {
   background: rgba(148, 163, 184, 0.12);
 }
@@ -1500,6 +1508,11 @@
   font-weight: 600;
   color: #475569;
   font-size: 12px;
+}
+
+.rankAvatarTop1 {
+  border: 2px solid rgba(245, 158, 11, 0.6);
+  box-shadow: 0 6px 14px rgba(245, 158, 11, 0.22);
 }
 
 .rankMedal1 {
@@ -1549,6 +1562,315 @@
   margin-top: 6px;
   cursor: pointer;
   align-self: center;
+}
+
+.myCenterBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 2400;
+}
+
+.myCenterPanel {
+  width: min(980px, 96vw);
+  height: 100%;
+  background: #ffffff;
+  box-shadow: -12px 0 30px rgba(15, 23, 42, 0.18);
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.myCenterHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.myCenterTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.myCenterSubtitle {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin-top: 4px;
+}
+
+.myCenterClose {
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+
+.myCenterTabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.myCenterTab {
+  border: none;
+  background: transparent;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: #64748b;
+  border-radius: 16px;
+  cursor: pointer;
+  min-width: 72px;
+}
+
+.myCenterTabActive {
+  background: #ffffff;
+  color: #0f766e;
+  font-weight: 600;
+  box-shadow: 0 6px 12px rgba(15, 23, 42, 0.12);
+}
+
+.myCenterSearchRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.myCenterSearch {
+  flex: 1;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.myCenterFilterToggle {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.myCenterFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.myCenterFilters select,
+.myCenterFiltersMore select {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.myCenterFiltersMore {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+
+.myCenterList {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 4px;
+}
+
+.myItemCard {
+  border: 1px solid #eef2f7;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.myItemMain {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.myItemTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.myItemMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+.myItemTag {
+  background: rgba(15, 118, 110, 0.12);
+  color: #0f766e;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-weight: 600;
+}
+
+.myItemStatus {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-weight: 600;
+}
+
+.myItemStatusPending {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
+.myItemStatusResolved {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.myItemActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.myItemActionBtn {
+  border: 1px solid rgba(15, 118, 110, 0.25);
+  background: #ffffff;
+  color: #0f766e;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.myCenterEmpty {
+  flex: 1;
+  border: 1px dashed #e5e7eb;
+  border-radius: 14px;
+  padding: 32px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  color: var(--color-text-tertiary);
+}
+
+.myCenterEmptyTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.myCenterEmptyActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.myCenterEmptyActions button {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.myDetailBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.25);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 2500;
+}
+
+.myDetailDrawer {
+  width: min(420px, 94vw);
+  height: 100%;
+  background: #ffffff;
+  box-shadow: -12px 0 30px rgba(15, 23, 42, 0.18);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.myDetailHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+}
+
+.myDetailBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.myDetailLabel {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+.myDetailValue {
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+
+.myDetailActions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.myDetailBtnPrimary {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #0f766e;
+  color: #ffffff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.myDetailBtnGhost {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #ffffff;
+  font-size: 13px;
+  cursor: pointer;
 }
 
 .activeList {
@@ -1724,6 +2046,7 @@
   flex-direction: column;
   gap: 16px;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .askModalcoach {
@@ -2029,19 +2352,33 @@
   background: #f9fafb;
   font-size: 12px;
   color: var(--color-text-tertiary);
+  position: relative;
 }
 
-.attachmentDrop input {
-  display: none;
-}
-
-.attachmentDrop button {
+.attachmentDrop button,
+.attachmentDrop label {
   border: 1px solid rgba(15, 118, 110, 0.4);
   background: #ffffff;
   color: #0f766e;
   border-radius: 10px;
   padding: 6px 12px;
   font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.attachmentButton {
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+
+.attachmentButton input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
   cursor: pointer;
 }
 
@@ -2157,12 +2494,13 @@
 }
 
 .previewBody {
-  max-width: min(80vw, 720px);
-  max-height: 80vh;
-  background: #0f172a;
-  border-radius: 16px;
+  max-width: min(86vw, 760px);
+  max-height: 86vh;
+  background: rgba(15, 23, 42, 0.18);
+  border-radius: 18px;
   padding: 12px;
   position: relative;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.25);
 }
 
 .previewBody img,
@@ -2175,20 +2513,21 @@
 
 .previewClose {
   position: absolute;
-  top: -12px;
-  right: -12px;
-  width: 32px;
-  height: 32px;
+  top: 8px;
+  right: 8px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   border: none;
-  background: rgba(15, 23, 42, 0.75);
+  background: rgba(15, 23, 42, 0.78);
   color: #ffffff;
   font-size: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.25);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.3);
+  z-index: 2;
 }
 
 .aiModeHeader {

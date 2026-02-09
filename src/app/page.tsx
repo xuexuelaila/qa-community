@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { format } from 'date-fns';
 import ContentModeSwitch from '@/components/common/ContentModeSwitch';
 import DateRangePicker from '@/components/common/DateRangePicker';
 import SmartTagBar from '@/components/log/SmartTagBar';
@@ -336,6 +337,11 @@ const communityCategories = [
   { key: 'other', label: '其他' },
 ];
 
+const categoryLabelMap = communityCategories.reduce<Record<string, string>>((acc, item) => {
+  acc[item.key] = item.label;
+  return acc;
+}, {});
+
 const coachShowcase = [
   {
     id: 'c1',
@@ -360,6 +366,24 @@ const coachShowcase = [
 type AiMessage = {
   role: 'user' | 'ai';
   content: string;
+};
+
+type MyCenterTab = 'question' | 'answer' | 'favorite';
+type MyCenterItem = {
+  id: string;
+  tab: MyCenterTab;
+  title: string;
+  category: string;
+  voyage: string;
+  time: Date;
+  status?: 'pending' | 'resolved';
+  mentionsCoach?: boolean;
+  allowCrew?: boolean;
+  adopted?: boolean;
+  likes?: number;
+  origin?: 'faq' | 'community';
+  source?: 'ai' | 'coach' | 'member';
+  postId?: string;
 };
 
 type CoachPrefill = {
@@ -705,6 +729,17 @@ const AskCoachModal = ({
     }
   }, [open, prefill]);
 
+  useEffect(() => {
+    if (!previewItem) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setPreviewItem(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewItem]);
+
   const canSubmit = Boolean(title.trim()) && Boolean(description.trim());
 
   useEffect(() => {
@@ -927,16 +962,19 @@ const AskCoachModal = ({
                     handleFiles(e.dataTransfer.files);
                   }}
                 >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime"
-                    onChange={(e) => handleFiles(e.target.files)}
-                  />
-                  <button onClick={() => fileInputRef.current?.click()} type="button">
+                  <label className={styles.attachmentButton}>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime"
+                      onChange={(e) => {
+                        handleFiles(e.target.files);
+                        e.currentTarget.value = '';
+                      }}
+                    />
                     上传图片/视频
-                  </button>
+                  </label>
                   <span>或拖拽到此处</span>
                 </div>
                 {attachmentError && (
@@ -994,7 +1032,12 @@ const AskCoachModal = ({
               />
             </div>
               {previewItem && (
-                <div className={styles.previewBackdrop} onClick={() => setPreviewItem(null)}>
+                <div
+                  className={styles.previewBackdrop}
+                  onClick={() => setPreviewItem(null)}
+                  role="dialog"
+                  aria-modal="true"
+                >
                   <div className={styles.previewBody} onClick={(e) => e.stopPropagation()}>
                     <button
                       className={styles.previewClose}
@@ -1182,6 +1225,24 @@ export default function HomePage() {
   });
   const [selectedCoach, setSelectedCoach] = useState(coachShowcase[0]);
   const aiInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [myCenterOpen, setMyCenterOpen] = useState(false);
+  const [myCenterTab, setMyCenterTab] = useState<MyCenterTab>('question');
+  const [myCenterSearch, setMyCenterSearch] = useState('');
+  const [myCenterFiltersOpen, setMyCenterFiltersOpen] = useState(false);
+  const [myDetailItem, setMyDetailItem] = useState<MyCenterItem | null>(null);
+  const [myFilters, setMyFilters] = useState({
+    time: 'all',
+    voyage: 'all',
+    category: 'all',
+    sort: 'latest',
+    status: 'all',
+    mention: 'all',
+    allowCrew: 'all',
+    adopted: 'all',
+    like: 'all',
+    favType: 'all',
+    source: 'all',
+  });
 
   // 页面加载时自动加载群聊提取的知识库
   useEffect(() => {
@@ -1543,6 +1604,19 @@ export default function HomePage() {
     setCoachModalOpen(false);
   };
 
+  const openMyCenter = (tab: MyCenterTab, overrides?: Partial<typeof myFilters>) => {
+    setMyCenterTab(tab);
+    setMyCenterOpen(true);
+    if (overrides) {
+      setMyFilters((prev) => ({ ...prev, ...overrides }));
+    }
+  };
+
+  const closeMyCenter = () => {
+    setMyCenterOpen(false);
+    setMyDetailItem(null);
+  };
+
   const openAiModal = () => {
     setAiModalOpen(true);
   };
@@ -1679,6 +1753,164 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+
+  const allMyItems: MyCenterItem[] = React.useMemo(() => {
+    const questionSeed = posts.slice(0, 6).map((post, index) => ({
+      id: `my-q-${post._id}`,
+      tab: 'question' as const,
+      title: post.title,
+      category: categoryLabelMap[post.content.stage] || '技术问题',
+      voyage: activeVoyage?.issue || '第12期',
+      time: post.createdAt,
+      status: post.status || (index % 2 === 0 ? 'pending' : 'resolved'),
+      mentionsCoach: Boolean(post.mentions && post.mentions.length > 0),
+      allowCrew: post.allowReplies !== false,
+      postId: post._id,
+    }));
+    const answerSeed = posts.slice(0, 5).map((post, index) => ({
+      id: `my-a-${post._id}`,
+      tab: 'answer' as const,
+      title: post.title,
+      category: categoryLabelMap[post.content.stage] || '技术问题',
+      voyage: activeVoyage?.issue || '第12期',
+      time: post.createdAt,
+      adopted: index % 2 === 0,
+      likes: (post.replies?.[0]?.likes || 0) + index * 3,
+      postId: post._id,
+    }));
+    const favoriteSeed: MyCenterItem[] = [
+      {
+        id: 'fav-1',
+        tab: 'favorite',
+        title: 'Next.js 环境变量部署后不生效如何排查？',
+        category: '技术问题',
+        voyage: activeVoyage?.issue || '第12期',
+        time: new Date(Date.now() - 2 * 24 * 3600 * 1000),
+        origin: 'community',
+        source: 'coach',
+      },
+      {
+        id: 'fav-2',
+        tab: 'favorite',
+        title: 'MongoDB 聚合查询性能优化清单',
+        category: '实操技巧',
+        voyage: activeVoyage?.issue || '第12期',
+        time: new Date(Date.now() - 4 * 24 * 3600 * 1000),
+        origin: 'faq',
+        source: 'ai',
+      },
+    ];
+    return [...questionSeed, ...answerSeed, ...favoriteSeed];
+  }, [posts, activeVoyage]);
+
+  const filteredMyItems = React.useMemo(() => {
+    let items = allMyItems.filter((item) => item.tab === myCenterTab);
+    if (myCenterSearch.trim()) {
+      const keyword = myCenterSearch.trim();
+      items = items.filter((item) => item.title.includes(keyword));
+    }
+    if (myFilters.category !== 'all') {
+      items = items.filter((item) => item.category === categoryLabelMap[myFilters.category]);
+    }
+    if (myFilters.voyage !== 'all') {
+      items = items.filter((item) => item.voyage === myFilters.voyage);
+    }
+    if (myCenterTab === 'question') {
+      if (myFilters.status !== 'all') {
+        items = items.filter((item) => item.status === myFilters.status);
+      }
+      if (myFilters.mention !== 'all') {
+        items = items.filter(
+          (item) => item.mentionsCoach === (myFilters.mention === 'yes')
+        );
+      }
+      if (myFilters.allowCrew !== 'all') {
+        items = items.filter((item) => item.allowCrew === (myFilters.allowCrew === 'yes'));
+      }
+    }
+    if (myCenterTab === 'answer') {
+      if (myFilters.adopted !== 'all') {
+        items = items.filter((item) => item.adopted === (myFilters.adopted === 'yes'));
+      }
+      if (myFilters.like !== 'all') {
+        items = items.filter((item) => (item.likes || 0) >= 10);
+      }
+    }
+    if (myCenterTab === 'favorite') {
+      if (myFilters.favType !== 'all') {
+        items = items.filter((item) => item.origin === myFilters.favType);
+      }
+      if (myFilters.source !== 'all') {
+        items = items.filter((item) => item.source === myFilters.source);
+      }
+    }
+    if (myFilters.sort === 'latest') {
+      items = [...items].sort((a, b) => b.time.getTime() - a.time.getTime());
+    }
+    return items;
+  }, [allMyItems, myCenterTab, myCenterSearch, myFilters]);
+
+  const MyCenterSegmented = () => (
+    <div className={styles.myCenterTabs}>
+      {[
+        { key: 'question', label: '我的提问' },
+        { key: 'answer', label: '我的回答' },
+        { key: 'favorite', label: '我的收藏' },
+      ].map((tab) => (
+        <button
+          key={tab.key}
+          className={`${styles.myCenterTab} ${
+            myCenterTab === tab.key ? styles.myCenterTabActive : ''
+          }`}
+          onClick={() => setMyCenterTab(tab.key as MyCenterTab)}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  const MyItemCard = ({ item }: { item: MyCenterItem }) => (
+    <div className={styles.myItemCard}>
+      <div className={styles.myItemMain} onClick={() => setMyDetailItem(item)}>
+        <div className={styles.myItemTitle}>{item.title}</div>
+        <div className={styles.myItemMeta}>
+          <span className={styles.myItemTag}>{item.category}</span>
+          <span>{format(new Date(item.time), 'yyyy-MM-dd')}</span>
+          <span>{item.voyage}</span>
+          {item.status && (
+            <span
+              className={`${styles.myItemStatus} ${
+                item.status === 'pending' ? styles.myItemStatusPending : styles.myItemStatusResolved
+              }`}
+            >
+              {item.status === 'pending' ? '待解决' : '已解决'}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className={styles.myItemActions}>
+        {item.tab === 'question' && (
+          <button
+            className={styles.myItemActionBtn}
+            onClick={() => setMyDetailItem(item)}
+          >
+            {item.status === 'pending' ? '去解决' : '查看'}
+          </button>
+        )}
+        {item.tab === 'answer' && (
+          <button className={styles.myItemActionBtn} onClick={() => setMyDetailItem(item)}>
+            查看原帖
+          </button>
+        )}
+        {item.tab === 'favorite' && (
+          <button className={styles.myItemActionBtn} onClick={() => setMyDetailItem(item)}>
+            打开
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1889,7 +2121,7 @@ export default function HomePage() {
                 </div>
 
                 <div className={styles.quickCardA}>
-                  <button className={styles.quickRow}>
+                  <button className={styles.quickRow} onClick={() => openMyCenter('question')}>
                     <span className={styles.quickLeft}>
                       <span className={styles.quickIcon}>●</span>我的提问
                     </span>
@@ -1898,7 +2130,7 @@ export default function HomePage() {
                       <span className={styles.quickChevron}>›</span>
                     </span>
                   </button>
-                  <button className={styles.quickRow}>
+                  <button className={styles.quickRow} onClick={() => openMyCenter('answer')}>
                     <span className={styles.quickLeft}>
                       <span className={styles.quickIcon}>●</span>我的回答
                     </span>
@@ -1907,7 +2139,7 @@ export default function HomePage() {
                       <span className={styles.quickChevron}>›</span>
                     </span>
                   </button>
-                  <button className={styles.quickRow}>
+                  <button className={styles.quickRow} onClick={() => openMyCenter('favorite')}>
                     <span className={styles.quickLeft}>
                       <span className={styles.quickIcon}>●</span>我的收藏
                     </span>
@@ -1923,7 +2155,12 @@ export default function HomePage() {
                       你还有 <strong>{currentUser.unresolved}</strong> 个问题待解决
                     </div>
                     <div className={styles.reminderActions}>
-                      <button className={styles.reminderBtn}>去解决</button>
+                      <button
+                        className={styles.reminderBtn}
+                        onClick={() => openMyCenter('question', { status: 'pending' })}
+                      >
+                        去解决
+                      </button>
                       <button
                         className={styles.reminderClose}
                         onClick={() => setShowReminder(false)}
@@ -1975,9 +2212,15 @@ export default function HomePage() {
                     (leader, index) => {
                       const rank = index + 1;
                       const isTop = rank <= 3;
+                      const isTop1 = rank === 1;
                       const medalClass = isTop ? styles[`rankMedal${rank}`] || '' : '';
                       return (
-                        <div key={leader.id} className={styles.rankItem}>
+                        <div
+                          key={leader.id}
+                          className={`${styles.rankItem} ${isTop ? styles.rankItemTop : ''} ${
+                            isTop1 ? styles.rankItemTop1 : ''
+                          }`}
+                        >
                           <span
                             className={`${styles.rankIcon} ${
                               isTop ? styles.rankIconMedal : styles.rankIconPlain
@@ -2022,7 +2265,13 @@ export default function HomePage() {
                               rank
                             )}
                           </span>
-                          <div className={styles.rankAvatar}>{leader.name.slice(0, 1)}</div>
+                          <div
+                            className={`${styles.rankAvatar} ${
+                              isTop1 ? styles.rankAvatarTop1 : ''
+                            }`}
+                          >
+                            {leader.name.slice(0, 1)}
+                          </div>
                           <div className={styles.rankInfo}>
                             <div className={`${styles.rankName} ${isTop ? styles.rankNameTop : ''}`}>
                               {leader.name}
@@ -2247,6 +2496,222 @@ export default function HomePage() {
               }));
             }}
           />
+
+          {myCenterOpen && (
+            <div className={styles.myCenterBackdrop} onClick={closeMyCenter}>
+              <div
+                className={styles.myCenterPanel}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className={styles.myCenterHeader}>
+                  <div>
+                    <div className={styles.myCenterTitle}>我的内容中心</div>
+                    <div className={styles.myCenterSubtitle}>集中管理我的提问/回答/收藏</div>
+                  </div>
+                  <button className={styles.myCenterClose} onClick={closeMyCenter}>
+                    ✕
+                  </button>
+                </div>
+
+                <MyCenterSegmented />
+
+                <div className={styles.myCenterSearchRow}>
+                  <input
+                    className={styles.myCenterSearch}
+                    placeholder="搜索标题/关键词"
+                    value={myCenterSearch}
+                    onChange={(e) => setMyCenterSearch(e.target.value)}
+                  />
+                  <button
+                    className={styles.myCenterFilterToggle}
+                    onClick={() => setMyCenterFiltersOpen((prev) => !prev)}
+                  >
+                    更多筛选
+                  </button>
+                </div>
+
+                <div className={styles.myCenterFilters}>
+                  <select
+                    value={myFilters.time}
+                    onChange={(e) => setMyFilters((prev) => ({ ...prev, time: e.target.value }))}
+                  >
+                    <option value="all">时间</option>
+                    <option value="7d">近7天</option>
+                    <option value="1m">近1月</option>
+                    <option value="3m">近3月</option>
+                  </select>
+                  <select
+                    value={myFilters.voyage}
+                    onChange={(e) => setMyFilters((prev) => ({ ...prev, voyage: e.target.value }))}
+                  >
+                    <option value="all">航海</option>
+                    <option value={activeVoyage?.issue || '第12期'}>
+                      {activeVoyage?.issue || '第12期'}
+                    </option>
+                  </select>
+                  <select
+                    value={myFilters.category}
+                    onChange={(e) => setMyFilters((prev) => ({ ...prev, category: e.target.value }))}
+                  >
+                    <option value="all">分类</option>
+                    {communityCategories
+                      .filter((category) => category.key !== 'all')
+                      .map((category) => (
+                        <option key={category.key} value={category.key}>
+                          {category.label}
+                        </option>
+                      ))}
+                  </select>
+                  <select
+                    value={myFilters.sort}
+                    onChange={(e) => setMyFilters((prev) => ({ ...prev, sort: e.target.value }))}
+                  >
+                    <option value="latest">排序：最新</option>
+                    <option value="hot">排序：热门</option>
+                  </select>
+                </div>
+
+                {myCenterFiltersOpen && (
+                  <div className={styles.myCenterFiltersMore}>
+                    {myCenterTab === 'question' && (
+                      <>
+                        <select
+                          value={myFilters.status}
+                          onChange={(e) =>
+                            setMyFilters((prev) => ({ ...prev, status: e.target.value }))
+                          }
+                        >
+                          <option value="all">状态：全部</option>
+                          <option value="pending">待解决</option>
+                          <option value="resolved">已解决</option>
+                        </select>
+                        <select
+                          value={myFilters.mention}
+                          onChange={(e) =>
+                            setMyFilters((prev) => ({ ...prev, mention: e.target.value }))
+                          }
+                        >
+                          <option value="all">@教练：全部</option>
+                          <option value="yes">已@教练</option>
+                          <option value="no">未@教练</option>
+                        </select>
+                        <select
+                          value={myFilters.allowCrew}
+                          onChange={(e) =>
+                            setMyFilters((prev) => ({ ...prev, allowCrew: e.target.value }))
+                          }
+                        >
+                          <option value="all">船员回答：全部</option>
+                          <option value="yes">允许</option>
+                          <option value="no">不允许</option>
+                        </select>
+                      </>
+                    )}
+                    {myCenterTab === 'answer' && (
+                      <>
+                        <select
+                          value={myFilters.adopted}
+                          onChange={(e) =>
+                            setMyFilters((prev) => ({ ...prev, adopted: e.target.value }))
+                          }
+                        >
+                          <option value="all">是否采纳：全部</option>
+                          <option value="yes">已采纳</option>
+                          <option value="no">未采纳</option>
+                        </select>
+                        <select
+                          value={myFilters.like}
+                          onChange={(e) => setMyFilters((prev) => ({ ...prev, like: e.target.value }))}
+                        >
+                          <option value="all">获赞数：全部</option>
+                          <option value="high">≥10</option>
+                        </select>
+                      </>
+                    )}
+                    {myCenterTab === 'favorite' && (
+                      <>
+                        <select
+                          value={myFilters.favType}
+                          onChange={(e) =>
+                            setMyFilters((prev) => ({ ...prev, favType: e.target.value }))
+                          }
+                        >
+                          <option value="all">类型：全部</option>
+                          <option value="faq">百问百答</option>
+                          <option value="community">社区问答</option>
+                        </select>
+                        <select
+                          value={myFilters.source}
+                          onChange={(e) =>
+                            setMyFilters((prev) => ({ ...prev, source: e.target.value }))
+                          }
+                        >
+                          <option value="all">来源：全部</option>
+                          <option value="ai">AI</option>
+                          <option value="coach">教练</option>
+                          <option value="member">船员</option>
+                        </select>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                <div className={styles.myCenterList}>
+                  {filteredMyItems.length > 0 ? (
+                    filteredMyItems.map((item) => <MyItemCard key={item.id} item={item} />)
+                  ) : (
+                    <div className={styles.myCenterEmpty}>
+                      <div className={styles.myCenterEmptyTitle}>暂无内容</div>
+                      <div className={styles.myCenterEmptyDesc}>
+                        去提一个问题或先问 AI 获取灵感。
+                      </div>
+                      <div className={styles.myCenterEmptyActions}>
+                        <button onClick={openAiModal}>去问 AI</button>
+                        <button onClick={() => openMyCenter('question')}>去看待解决问题</button>
+                        <button onClick={() => setActiveMainTab('log')}>去逛百问百答</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {myDetailItem && (
+            <div className={styles.myDetailBackdrop} onClick={() => setMyDetailItem(null)}>
+              <div
+                className={styles.myDetailDrawer}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className={styles.myDetailHeader}>
+                  <div className={styles.myDetailTitle}>详情预览</div>
+                  <button onClick={() => setMyDetailItem(null)}>✕</button>
+                </div>
+                <div className={styles.myDetailBody}>
+                  <div className={styles.myDetailLabel}>标题</div>
+                  <div className={styles.myDetailValue}>{myDetailItem.title}</div>
+                  <div className={styles.myDetailLabel}>分类</div>
+                  <div className={styles.myDetailValue}>{myDetailItem.category}</div>
+                  <div className={styles.myDetailLabel}>航海期数</div>
+                  <div className={styles.myDetailValue}>{myDetailItem.voyage}</div>
+                  {myDetailItem.status && (
+                    <>
+                      <div className={styles.myDetailLabel}>状态</div>
+                      <div className={styles.myDetailValue}>
+                        {myDetailItem.status === 'pending' ? '待解决' : '已解决'}
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className={styles.myDetailActions}>
+                  <button className={styles.myDetailBtnPrimary}>打开详情</button>
+                  <button className={styles.myDetailBtnGhost} onClick={() => setMyDetailItem(null)}>
+                    关闭
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
       )}

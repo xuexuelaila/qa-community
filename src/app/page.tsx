@@ -1236,6 +1236,7 @@ export default function HomePage() {
   const [extractedQAs, setExtractedQAs] = useState<QAKnowledge[]>(FALLBACK_QAS); // 提取的真实数据
   const [selectedQA, setSelectedQA] = useState<QAKnowledge | null>(null); // 选中的QA用于显示详情
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false); // 详情弹窗状态
+  const [detailScrollTarget, setDetailScrollTarget] = useState<'top' | 'comments'>('top');
   const [allTags, setAllTags] = useState<string[]>(defaultTags); // 动态标签列表
   const [tagClickCounts, setTagClickCounts] = useState<Record<string, number>>({}); // 标签点击统计
 
@@ -1427,7 +1428,10 @@ export default function HomePage() {
           y = clamp(y, 80, maxY);
         }
       }
-      setRobotPos({ x, y });
+      const prev = robotPosRef.current;
+      if (!prev || Math.abs(prev.x - x) > 0.5 || Math.abs(prev.y - y) > 0.5) {
+        setRobotPos({ x, y });
+      }
     };
 
     const scheduleUpdate = () => {
@@ -1439,7 +1443,7 @@ export default function HomePage() {
     };
 
     const observer = new MutationObserver(scheduleUpdate);
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+    observer.observe(document.body, { childList: true, subtree: true });
     window.addEventListener('resize', scheduleUpdate);
     window.addEventListener('scroll', scheduleUpdate, { passive: true });
     scheduleUpdate();
@@ -1523,8 +1527,9 @@ export default function HomePage() {
   };
 
   // 打开详情弹窗
-  const handleCardClick = (qa: QAKnowledge) => {
+  const handleCardClick = (qa: QAKnowledge, target: 'top' | 'comments' = 'top') => {
     setSelectedQA(qa);
+    setDetailScrollTarget(target);
     setIsDetailModalOpen(true);
   };
 
@@ -1532,6 +1537,7 @@ export default function HomePage() {
   const handleCloseDetail = () => {
     setIsDetailModalOpen(false);
     setSelectedQA(null);
+    setDetailScrollTarget('top');
   };
 
   // 航海日志筛选逻辑
@@ -1698,9 +1704,58 @@ export default function HomePage() {
     }
   };
 
+  const handleMyCenterTabChange = (tab: MyCenterTab) => {
+    setMyCenterTab(tab);
+    setMyDetailItem(null);
+    setMyCenterSearch('');
+    setMyCenterFiltersOpen(false);
+    setMyFilters((prev) => ({
+      ...prev,
+      category: 'all',
+      sort: 'latest',
+      status: 'all',
+      mention: 'all',
+      allowCrew: 'all',
+      adopted: 'all',
+      like: 'all',
+      favType: 'all',
+      source: 'all',
+    }));
+  };
+
   const closeMyCenter = () => {
     setMyCenterOpen(false);
     setMyDetailItem(null);
+  };
+
+  const jumpToMyItem = (item: MyCenterItem) => {
+    if (item.postId) {
+      const targetId = item.postId;
+      setActiveMainTab('community');
+      setMyCenterOpen(false);
+      setMyDetailItem(null);
+      window.setTimeout(() => {
+        const el = document.getElementById(`post-${targetId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 120);
+      return;
+    }
+    const qa = findQaByItem(item);
+    if (qa) {
+      setMyCenterOpen(false);
+      setMyDetailItem(null);
+      setActiveMainTab('log');
+      setSelectedQA(qa);
+      setDetailScrollTarget('top');
+      setIsDetailModalOpen(true);
+    }
+  };
+
+  const openMyDetailTarget = () => {
+    if (!myDetailItem) return;
+    jumpToMyItem(myDetailItem);
   };
 
   const openAiModal = () => {
@@ -1948,11 +2003,12 @@ export default function HomePage() {
         { key: 'favorite', label: '我的收藏' },
       ].map((tab) => (
         <button
+          type="button"
           key={tab.key}
           className={`${styles.myCenterTab} ${
             myCenterTab === tab.key ? styles.myCenterTabActive : ''
           }`}
-          onClick={() => setMyCenterTab(tab.key as MyCenterTab)}
+          onClick={() => handleMyCenterTabChange(tab.key as MyCenterTab)}
         >
           {tab.label}
         </button>
@@ -1982,19 +2038,20 @@ export default function HomePage() {
       <div className={styles.myItemActions}>
         {item.tab === 'question' && (
           <button
+            type="button"
             className={styles.myItemActionBtn}
-            onClick={() => setMyDetailItem(item)}
+            onClick={() => jumpToMyItem(item)}
           >
             {item.status === 'pending' ? '去解决' : '查看'}
           </button>
         )}
         {item.tab === 'answer' && (
-          <button className={styles.myItemActionBtn} onClick={() => setMyDetailItem(item)}>
+          <button type="button" className={styles.myItemActionBtn} onClick={() => jumpToMyItem(item)}>
             查看原帖
           </button>
         )}
         {item.tab === 'favorite' && (
-          <button className={styles.myItemActionBtn} onClick={() => setMyDetailItem(item)}>
+          <button type="button" className={styles.myItemActionBtn} onClick={() => jumpToMyItem(item)}>
             查看原帖
           </button>
         )}
@@ -2005,15 +2062,20 @@ export default function HomePage() {
   const selectedPost = myDetailItem?.postId
     ? posts.find((post) => post._id === myDetailItem.postId)
     : undefined;
-  const selectedMyQA = React.useMemo(() => {
-    if (!myDetailItem) return undefined;
-    if (myDetailItem.origin !== 'faq') return undefined;
-    const byTitle =
-      extractedQAs.find((qa) => qa.question.includes(myDetailItem.title)) ||
-      extractedQAs.find((qa) => myDetailItem.title.includes(qa.question));
-    if (byTitle) return byTitle;
-    return mockQAs.find((qa) => myDetailItem.title.includes(qa.question));
-  }, [myDetailItem, extractedQAs]);
+
+  const findQaByItem = React.useCallback(
+    (item?: MyCenterItem | null) => {
+      if (!item || item.origin !== 'faq') return undefined;
+      const byTitle =
+        extractedQAs.find((qa) => qa.question.includes(item.title)) ||
+        extractedQAs.find((qa) => item.title.includes(qa.question));
+      if (byTitle) return byTitle;
+      return FALLBACK_QAS.find((qa) => item.title.includes(qa.question));
+    },
+    [extractedQAs]
+  );
+
+  const selectedMyQA = React.useMemo(() => findQaByItem(myDetailItem), [findQaByItem, myDetailItem]);
 
 
   return (
@@ -2040,7 +2102,7 @@ export default function HomePage() {
                   key={qa._id}
                   qa={qa}
                   onFeedback={handleFeedback}
-                  onClick={() => handleCardClick(qa)}
+                  onClick={(target) => handleCardClick(qa, target)}
                 />
               ))}
             </QAGrid>
@@ -2057,6 +2119,7 @@ export default function HomePage() {
               isOpen={isDetailModalOpen}
               onClose={handleCloseDetail}
               onFeedback={handleFeedback}
+              initialScrollTarget={detailScrollTarget}
             />
           )}
         </div>
@@ -2877,7 +2940,9 @@ export default function HomePage() {
                   )}
                 </div>
                 <div className={styles.myDetailActions}>
-                  <button className={styles.myDetailBtnPrimary}>打开详情</button>
+                  <button className={styles.myDetailBtnPrimary} onClick={openMyDetailTarget}>
+                    打开详情
+                  </button>
                   <button className={styles.myDetailBtnGhost} onClick={() => setMyDetailItem(null)}>
                     关闭
                   </button>

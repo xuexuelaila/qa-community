@@ -15,6 +15,7 @@ interface QADetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   onFeedback?: (qaId: string, type: 'useful' | 'useless') => void;
+  initialScrollTarget?: 'top' | 'comments';
 }
 
 const categoryNames = {
@@ -35,7 +36,13 @@ type LocalComment = {
   replies?: QAReply[];
 };
 
-export default function QADetailModal({ qa, isOpen, onClose, onFeedback }: QADetailModalProps) {
+export default function QADetailModal({
+  qa,
+  isOpen,
+  onClose,
+  onFeedback,
+  initialScrollTarget = 'top',
+}: QADetailModalProps) {
   const [userFeedback, setUserFeedback] = React.useState<'useful' | 'useless' | null>(null);
   const [commentInput, setCommentInput] = React.useState('');
   const [remoteComments, setRemoteComments] = React.useState<QAComment[]>(qa.comments || []);
@@ -85,6 +92,8 @@ export default function QADetailModal({ qa, isOpen, onClose, onFeedback }: QADet
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const replyFileInputRefs = React.useRef<Record<string, HTMLInputElement | null>>({});
   const commentInputRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const contentRef = React.useRef<HTMLDivElement | null>(null);
+  const commentsRef = React.useRef<HTMLDivElement | null>(null);
   const dragRef = React.useRef<{ x: number; y: number } | null>(null);
   const pinchRef = React.useRef<{ dist: number; zoom: number } | null>(null);
   const swipeRef = React.useRef<{ x: number; y: number } | null>(null);
@@ -208,6 +217,18 @@ export default function QADetailModal({ qa, isOpen, onClose, onFeedback }: QADet
     setVisibleCount(6);
     fetchComments();
   }, [fetchComments, isOpen, qa._id]);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const id = window.requestAnimationFrame(() => {
+      if (initialScrollTarget === 'comments') {
+        commentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [initialScrollTarget, isOpen]);
 
   React.useEffect(() => {
     setVisibleCount(6);
@@ -1134,7 +1155,7 @@ export default function QADetailModal({ qa, isOpen, onClose, onFeedback }: QADet
           </button>
         </div>
 
-        <div className={styles.content}>
+        <div className={styles.content} ref={contentRef}>
           {/* 答案 */}
           <div className={styles.section}>
             {qa.steps && qa.steps.length > 0 ? (
@@ -1241,7 +1262,7 @@ export default function QADetailModal({ qa, isOpen, onClose, onFeedback }: QADet
             </div>
           </div>
 
-          <div className={styles.commentsSection}>
+          <div className={styles.commentsSection} ref={commentsRef}>
             <div className={styles.commentsHeader}>
               <div className={styles.commentsTitle}>
                 全部评论

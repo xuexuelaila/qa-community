@@ -10,7 +10,7 @@ import styles from './QACard.module.css';
 interface QACardProps {
   qa: QAKnowledge;
   onFeedback?: (qaId: string, type: 'useful' | 'useless') => void;
-  onClick?: () => void;
+  onClick?: (target?: 'top' | 'comments') => void;
 }
 
 interface ExtractedLink {
@@ -32,7 +32,7 @@ export default function QACard({ qa, onClick }: QACardProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const handleCardClick = () => {
-    onClick?.();
+    onClick?.('top');
   };
 
   const dedupeMarkdownLines = (text: string): string => {
@@ -190,7 +190,7 @@ export default function QACard({ qa, onClick }: QACardProps) {
             className={styles.detailButton}
             onClick={(e) => {
               e.stopPropagation();
-              onClick?.();
+              onClick?.('comments');
             }}
           >
             查看详细

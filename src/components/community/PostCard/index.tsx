@@ -129,11 +129,13 @@ export default function PostCard({ post, onClick }: PostCardProps) {
     if (!showReplyBox) {
       if (replyAttachments.length > 0) {
         replyAttachments.forEach((item) => URL.revokeObjectURL(item.url));
+        setReplyAttachments([]);
       }
-      setReplyAttachments([]);
-      setReplyAttachmentError('');
+      if (replyAttachmentError) {
+        setReplyAttachmentError('');
+      }
     }
-  }, [showReplyBox, replyAttachments]);
+  }, [showReplyBox, replyAttachments, replyAttachmentError]);
 
   useEffect(() => {
     if (!showEmojiPanel) return;
